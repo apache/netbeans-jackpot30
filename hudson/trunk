@@ -1,0 +1,114 @@
+#!/bin/bash -x
+
+# DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+#
+# Copyright 2009-2017 Oracle and/or its affiliates. All rights reserved.
+#
+# Oracle and Java are registered trademarks of Oracle and/or its affiliates.
+# Other names may be trademarks of their respective owners.
+#
+# The contents of this file are subject to the terms of either the GNU
+# General Public License Version 2 only ("GPL") or the Common
+# Development and Distribution License("CDDL") (collectively, the
+# "License"). You may not use this file except in compliance with the
+# License. You can obtain a copy of the License at
+# http://www.netbeans.org/cddl-gplv2.html
+# or nbbuild/licenses/CDDL-GPL-2-CP. See the License for the
+# specific language governing permissions and limitations under the
+# License.  When distributing the software, include this License Header
+# Notice in each file and include the License file at
+# nbbuild/licenses/CDDL-GPL-2-CP.  Oracle designates this
+# particular file as subject to the "Classpath" exception as provided
+# by Oracle in the GPL Version 2 section of the License file that
+# accompanied this code. If applicable, add the following below the
+# License Header, with the fields enclosed by brackets [] replaced by
+# your own identifying information:
+# "Portions Copyrighted [year] [name of copyright owner]"
+#
+# Contributor(s):
+#
+# The Original Software is NetBeans. The Initial Developer of the Original
+# Software is Sun Microsystems, Inc. Portions Copyright 2009-2010 Sun
+# Microsystems, Inc. All Rights Reserved.
+#
+# If you wish your version of this file to be governed by only the CDDL
+# or only the GPL Version 2, indicate your decision by adding
+# "[Contributor] elects to include this software in this distribution
+# under the [CDDL or GPL Version 2] license." If you do not indicate a
+# single choice of license, a recipient has the option to distribute
+# your version of this file under either the CDDL, the GPL Version 2 or
+# to extend the choice of license to its licensees as provided above.
+# However, if you add GPL Version 2 code and therefore, elected the GPL
+# Version 2 license, then the option applies only if the new code is
+# made subject to such option by the copyright holder.
+
+prepare_platform() {
+if [ "$TRUNK_URL" == "" ] ; then
+    TRUNK_URL="http://deadlock.netbeans.org/hudson/job/nbms-and-javadoc";
+fi;
+
+TRUNK_ID=`wget -q $TRUNK_URL/lastSuccessfulBuild/buildNumber -O -`
+
+mkdir -p nbbuild
+
+cd nbbuild
+rm -rf netbeans
+mkdir netbeans
+mkdir -p download
+
+rm `ls download/netbeans-hudson-trunk* | grep -v $TRUNK_ID`
+
+cd netbeans
+
+download_and_unpack_cluster() {
+    if [ ! -e ../download/netbeans-hudson-trunk-$TRUNK_ID-$1.zip ] ; then
+        wget -q -N $TRUNK_URL/$TRUNK_ID/artifact/nbbuild/dist/hudson-nbms-and-javadoc-$TRUNK_ID-$1.zip -O ../download/netbeans-hudson-trunk-$TRUNK_ID-$1.zip || exit
+    fi;
+    unzip -q ../download/*$TRUNK_ID-$1.zip || exit
+}
+
+for cluster in ide extide platform java harness nb apisupport enterprise cnd dlight websvccommon; do
+    download_and_unpack_cluster $cluster;
+done
+
+cd ../..
+
+PLATFORM=$PWD/nbbuild/netbeans
+
+ant -f hudson/download-extra-nbms.xml -Dnbplatform.default.harness.dir=$PLATFORM/harness -Dnbplatform.default.netbeans.dest.dir=$PLATFORM
+}
+
+if [ "$PLATFORM" == "" ] ; then
+    prepare_platform
+fi;
+
+ant -Dnbplatform.active.dir=$PLATFORM -f lib/download.xml download copy-from-platform
+
+SUBPROJECTS="remoting duplicates language cmdline";
+
+for subproject in $SUBPROJECTS; do
+    (cd $subproject; ./build.sh -Dnbplatform.default.harness.dir=$PLATFORM/harness -Dnbplatform.default.netbeans.dest.dir=$PLATFORM -Dnbplatform.active.dir=$PLATFORM) || exit 1
+done
+
+for subproject in language remoting; do
+    if [ -x $subproject/post-build.sh ] ; then
+        (cd $subproject; ./post-build.sh -Dnbplatform.default.harness.dir=$PLATFORM/harness -Dnbplatform.default.netbeans.dest.dir=$PLATFORM -Dnbplatform.active.dir=$PLATFORM) || exit 1
+    fi;
+done
+
+mkdir -p build/updates
+
+NBMS_SUBPROJECTS="remoting language duplicates";
+
+cp `find $NBMS_SUBPROJECTS -type f -name "*.nbm"` build/updates
+ant -Dnbplatform.default.harness.dir=$PLATFORM/harness -Dnbplatform.default.netbeans.dest.dir=$PLATFORM -Dnbplatform.active.dir=$PLATFORM -Ddist.base=$DIST_BASE build-auc || exit 1
+gzip <build/updates/updates.xml >build/updates/updates.xml.gz
+
+JACKPOT_ANALYSIS_SUBPROJECTS="remoting/common remoting/ide remoting/server/indexer duplicates/ide cmdline language/ide"
+JACKPOT_TOOL=`pwd`/cmdline/tool/build/jackpot
+echo "$JACKPOT_TOOL"
+for subproject in $JACKPOT_ANALYSIS_SUBPROJECTS; do
+    (cd $subproject; ant -Dnbplatform.default.harness.dir=$PLATFORM/harness -Dnbplatform.default.netbeans.dest.dir=$PLATFORM -Dnbplatform.active.dir=$PLATFORM -Djackpot.home="$JACKPOT_TOOL" jackpot) || exit 1
+done
+
+exit 0

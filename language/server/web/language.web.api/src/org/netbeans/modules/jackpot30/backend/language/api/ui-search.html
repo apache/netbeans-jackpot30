@@ -1,0 +1,127 @@
+<!--
+DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+
+Copyright 2009-2017 Oracle and/or its affiliates. All rights reserved.
+
+Oracle and Java are registered trademarks of Oracle and/or its affiliates.
+Other names may be trademarks of their respective owners.
+
+The contents of this file are subject to the terms of either the GNU
+General Public License Version 2 only ("GPL") or the Common
+Development and Distribution License("CDDL") (collectively, the
+"License"). You may not use this file except in compliance with the
+License. You can obtain a copy of the License at
+http://www.netbeans.org/cddl-gplv2.html
+or nbbuild/licenses/CDDL-GPL-2-CP. See the License for the
+specific language governing permissions and limitations under the
+License.  When distributing the software, include this License Header
+Notice in each file and include the License file at
+nbbuild/licenses/CDDL-GPL-2-CP.  Oracle designates this
+particular file as subject to the "Classpath" exception as provided
+by Oracle in the GPL Version 2 section of the License file that
+accompanied this code. If applicable, add the following below the
+License Header, with the fields enclosed by brackets [] replaced by
+your own identifying information:
+"Portions Copyrighted [year] [name of copyright owner]"
+
+Contributor(s):
+
+The Original Software is NetBeans. The Initial Developer of the Original
+Software is Sun Microsystems, Inc. Portions Copyright 2009-2010 Sun
+Microsystems, Inc. All Rights Reserved.
+
+If you wish your version of this file to be governed by only the CDDL
+or only the GPL Version 2, indicate your decision by adding
+"[Contributor] elects to include this software in this distribution
+under the [CDDL or GPL Version 2] license." If you do not indicate a
+single choice of license, a recipient has the option to distribute
+your version of this file under either the CDDL, the GPL Version 2 or
+to extend the choice of license to its licensees as provided above.
+However, if you add GPL Version 2 code and therefore, elected the GPL
+Version 2 license, then the option applies only if the new code is
+made subject to such option by the copyright holder.
+-->
+<html>
+<head>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4/jquery.min.js"></script>
+<#if results??>
+    <script type="text/javascript">
+        //XXX: duplicate:
+        function paramValue(param) {
+            var $params = window.location.search.substring(1).split("&");
+
+            for (var i = 0; i < $params.length; i++) {
+                if ($params[i].indexOf(param + "=") !== (-1)) {
+                    return unescape($params[i].substring((param + "=").length));
+                }
+            }
+        }
+        $(document).ready(function() {
+            if (paramValue("validate") == "true") {
+                $('#validate').attr("checked", "true");
+            }
+            $('#list').find('dd').hide().end().find('dt').click(function() {
+                current_dd=$(this).next();
+                //XXX: will do the AJAX call for both show and hide!
+                $.get("snippet?path=${selectedPath}&relative=" + current_dd.attr("id") + "&pattern=${patternEscaped}",function(data) {
+                    current_dd.html(data).slideToggle();
+                })
+            });
+        });
+    </script>
+</#if>
+    <style type="text/css">
+        .occurrence {BACKGROUND: #DDDD00;}
+    </style>
+</head>
+<body>
+<form method="get">
+
+<label for="path">Project:</label>
+<select size="1" name="path">");
+    <#list paths as path>
+        <option <#if selectedPath?? && path.segment == selectedPath>selected</#if> value="${path.segment}">
+            ${path.displayName}
+        </option>
+    </#list>
+</select>
+<br>
+<label for="pattern">Pattern:</label><br>
+<textarea rows="10" cols="40" name="pattern">
+<#if pattern??>
+${pattern}
+</#if>
+</textarea><br>
+<input type="checkbox" name="validate" value="true" id="validate">Validate (slower)<br>
+<input type="submit" name="Find Candidates"/>
+</form>
+
+<div class="examples">
+<#if examples??>
+    Examples:
+    <dl id="examples-list">
+        <#list examples as example>
+            <dt>${example.displayName}</dt>
+            <dd><pre>${example.pattern}</pre>
+            </dd>
+        </#list>
+    </dl>
+</#if>
+</div>
+
+<#if results??>
+    Found candidates for pattern: ${pattern}
+    <dl id="list">
+        <#list results as result>
+            <dt>${result.relativePath}<a href="/index/languageui/show?path=${selectedPath}&relative=${result.relativePath}&pattern=${patternEscaped}">show</a></dt>
+            <dd id="${result.relativePath}">
+            </dd>
+        </#list>
+    </dl>
+</#if>
+
+<#if statistics??>
+     Query time: ${statistics.queryTime}ms, matching files: ${statistics.files}.
+</#if>
+</body>
+</html>

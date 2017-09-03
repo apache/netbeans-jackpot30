@@ -1,0 +1,15 @@
+{
+ "prj1/src/": [
+     {
+         "enclosingFQN": "project1.B",
+         "simpleName": "test",
+         "file": "prj1/src/project1/B.java",
+         "vmsignature": "()V",
+         "modifiers": [
+             "STATIC"
+         ],
+         "kind": "METHOD",
+         "signature": "()V;"
+     }
+ ]
+}

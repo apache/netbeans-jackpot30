@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+OpenIDE-Module: org.netbeans.modules.jackpot30.ide.browsing
+OpenIDE-Module-Install: org/netbeans/modules/jackpot30/ide/browsing/Installer.class
+OpenIDE-Module-Localizing-Bundle: org/netbeans/modules/jackpot30/ide/browsing/Bundle.properties
+OpenIDE-Module-Specification-Version: 1.0
+AutoUpdate-Show-In-Client: false
+

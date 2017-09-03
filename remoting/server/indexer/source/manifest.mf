@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+OpenIDE-Module: org.netbeans.modules.jackpot30.indexer.source
+OpenIDE-Module-Localizing-Bundle: org/netbeans/modules/jackpot30/indexer/source/Bundle.properties
+OpenIDE-Module-Specification-Version: 1.0
+

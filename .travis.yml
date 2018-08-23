@@ -18,7 +18,7 @@ language: java
 jdk:
   - oraclejdk8
 before_script:
-  - wget http://www.apache.org/dyn/closer.lua?action=download&filename=incubator/netbeans/incubating-netbeans-java/incubating-9.0/incubating-netbeans-java-9.0-bin.zip -O /tmp/incubating-netbeans-java-9.0-bin.zip
+  - wget 'http://www.apache.org/dyn/closer.lua?action=download&filename=incubator/netbeans/incubating-netbeans-java/incubating-9.0/incubating-netbeans-java-9.0-bin.zip' -O /tmp/incubating-netbeans-java-9.0-bin.zip
   - tar -xvf /tmp/incubating-netbeans-java-9.0-bin.zip
 script:
   - export JDK10=$HOME/openjdk10

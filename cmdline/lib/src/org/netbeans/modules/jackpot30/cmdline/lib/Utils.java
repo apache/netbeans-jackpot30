@@ -18,10 +18,27 @@
  */
 package org.netbeans.modules.jackpot30.cmdline.lib;
 
+import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Pattern;
+import org.netbeans.api.annotations.common.NonNull;
+import org.netbeans.api.java.classpath.ClassPath;
 import org.netbeans.modules.java.hints.providers.spi.HintDescription;
+import org.netbeans.spi.java.classpath.PathResourceImplementation;
+import org.netbeans.spi.java.classpath.support.ClassPathSupport;
+import org.openide.filesystems.FileObject;
+import org.openide.filesystems.FileUtil;
+import org.openide.filesystems.URLMapper;
+import org.openide.util.BaseUtilities;
 
 /**
  *
@@ -68,4 +85,76 @@ public class Utils {
         put("!=", "not_equals");
     }};
 
+    //copied from BootClassPathUtil:
+    public static ClassPath createDefaultBootClassPath() {
+        String cp = System.getProperty("sun.boot.class.path");
+        if (cp != null) {
+            List<URL> urls = new ArrayList<>();
+            String[] paths = cp.split(Pattern.quote(System.getProperty("path.separator")));
+            for (String path : paths) {
+                File f = new File(path);
+
+                if (!f.canRead())
+                    continue;
+
+                FileObject fo = FileUtil.toFileObject(f);
+                if (FileUtil.isArchiveFile(fo)) {
+                    fo = FileUtil.getArchiveRoot(fo);
+                }
+                if (fo != null) {
+                    urls.add(fo.toURL());
+                }
+            }
+            return ClassPathSupport.createClassPath((URL[])urls.toArray(new URL[0]));
+        } else {
+            try {
+                Class.forName("org.netbeans.ProxyURLStreamHandlerFactory").getMethod("register")
+                                                                          .invoke(null);
+            } catch (ClassNotFoundException | NoSuchMethodException |
+                     SecurityException | IllegalAccessException |
+                    IllegalArgumentException | InvocationTargetException ex) {
+                throw new IllegalStateException(ex);
+            }
+            final List<PathResourceImplementation> modules = new ArrayList<>();
+            final File installDir = new File(System.getProperty("java.home"));
+            final URI imageURI = getImageURI(installDir);
+            try {
+                final FileObject jrtRoot = URLMapper.findFileObject(imageURI.toURL());
+                final FileObject root = getModulesRoot(jrtRoot);
+                for (FileObject module : root.getChildren()) {
+                    modules.add(ClassPathSupport.createResource(module.toURL()));
+                }
+            } catch (MalformedURLException e) {
+                throw new IllegalStateException(e);
+            }
+            if (modules.isEmpty()) {
+                throw new IllegalStateException("No modules!");
+            }
+            return ClassPathSupport.createClassPath(modules);
+        }
+    }
+
+    private static final String PROTOCOL = "nbjrt"; //NOI18N
+
+    private static URI getImageURI(@NonNull final File jdkHome) {
+        try {
+            return new URI(String.format(
+                "%s:%s!/%s",  //NOI18N
+                PROTOCOL,
+                BaseUtilities.toURI(jdkHome).toString(),
+                ""));
+        } catch (URISyntaxException e) {
+            throw new IllegalStateException();
+        }
+    }
+
+    @NonNull
+    private static FileObject getModulesRoot(@NonNull final FileObject jrtRoot) {
+        final FileObject modules = jrtRoot.getFileObject("modules");    //NOI18N
+        //jimage v1 - modules are located in the root
+        //jimage v2 - modules are located in "modules" folder
+        return modules == null ?
+            jrtRoot :
+            modules;
+    }
 }

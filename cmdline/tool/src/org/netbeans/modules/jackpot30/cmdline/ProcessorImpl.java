@@ -16,21 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.jackpot30.ap;
+package org.netbeans.modules.jackpot30.cmdline;
 
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.Tree;
+import com.sun.source.util.JavacTask;
 import com.sun.source.util.SourcePositions;
+import com.sun.source.util.TaskEvent;
+import com.sun.source.util.TaskListener;
 import com.sun.source.util.TreePath;
 import com.sun.source.util.TreePathScanner;
 import com.sun.source.util.Trees;
+import com.sun.tools.javac.comp.Resolve;
+import com.sun.tools.javac.util.Context;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -44,7 +54,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.prefs.AbstractPreferences;
 import java.util.prefs.BackingStoreException;
-import java.util.prefs.Preferences;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
@@ -71,11 +80,12 @@ import org.netbeans.modules.java.hints.spiimpl.hints.HintsInvoker;
 import org.netbeans.modules.java.hints.spiimpl.options.HintsSettings;
 import org.netbeans.modules.parsing.impl.indexing.CacheFolder;
 import org.netbeans.spi.editor.hints.ErrorDescription;
-import org.netbeans.spi.editor.hints.Severity;
 import org.netbeans.spi.java.classpath.support.ClassPathSupport;
+import org.netbeans.spi.java.hints.Hint;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
 import org.openide.filesystems.URLMapper;
+import org.openide.util.Exceptions;
 import org.openide.util.Lookup;
 
 /**
@@ -87,144 +97,162 @@ import org.openide.util.Lookup;
 public class ProcessorImpl extends AbstractProcessor {
 
     public static final String CONFIGURATION_OPTION = "hintsConfiguration";
-    private final Map<URL, String> sources = new HashMap<>();
+    private final Map<URL, CompilationUnitTree> sources = new HashMap<>();
+    private static final Logger TOP_LOGGER = Logger.getLogger("");
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        final Trees trees = Trees.instance(processingEnv);
 
         if (!roundEnv.processingOver()) {
+            Trees trees = Trees.instance(processingEnv);
             for (Element root : roundEnv.getRootElements()) {
                 TypeElement outtermost = outtermostType(root);
                 TreePath path = trees.getPath(outtermost);
-
                 if (path == null) {
                     //TODO: log
                     continue;
                 }
-
                 try {
-                    sources.put(path.getCompilationUnit().getSourceFile().toUri().toURL(), outtermost.getQualifiedName().toString());
+                    sources.put(path.getCompilationUnit().getSourceFile().toUri().toURL(), path.getCompilationUnit());
                 } catch (MalformedURLException ex) {
                     processingEnv.getMessager().printMessage(Kind.ERROR, "Unexpected exception: " + ex.getMessage());
                     Logger.getLogger(ProcessorImpl.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
         } else {
-            try {
-                Field contextField = processingEnv.getClass().getDeclaredField("context");
-                contextField.setAccessible(true);
-                Object context = contextField.get(processingEnv);
-                Method get = context.getClass().getDeclaredMethod("get", Class.class);
-                JavaFileManager fileManager = (JavaFileManager) get.invoke(context, JavaFileManager.class);
-
-                if (!(fileManager instanceof StandardJavaFileManager)) {
-                    processingEnv.getMessager().printMessage(Kind.ERROR, "The file manager is not a StandardJavaFileManager, cannot run Jackpot 3.0.");
-                    return false;
-                }
-
-                setupCache();
-
-                StandardJavaFileManager sfm = (StandardJavaFileManager) fileManager;
-
-                ClassPath bootCP = toClassPath(sfm.getLocation(StandardLocation.PLATFORM_CLASS_PATH));
-                ClassPath compileCP = toClassPath(sfm.getLocation(StandardLocation.CLASS_PATH));
-                Iterable<? extends File> sourcePathLocation = sfm.getLocation(StandardLocation.SOURCE_PATH);
-                ClassPath sourceCP = sourcePathLocation != null ? toClassPath(sourcePathLocation) : inferSourcePath();
-
-                final Map<FileObject, String> sourceFiles = new HashMap<>();
-
-                for (Entry<URL, String> e : sources.entrySet()) {
-                    FileObject fo = URLMapper.findFileObject(e.getKey());
-                    if (fo == null) {
-                        //XXX:
-                        return false;
+            JavacTask.instance(processingEnv).addTaskListener(new TaskListener() {
+                @Override
+                public void started(TaskEvent e) {}
+                @Override
+                public void finished(TaskEvent evt) {
+                    if (evt.getKind() == TaskEvent.Kind.ENTER) {
+                        runHints();
                     }
-                    sourceFiles.put(fo, e.getValue());
                 }
 
-                final Map<HintMetadata, ? extends Collection<? extends HintDescription>> allHints = RulesManager.getInstance().readHints(null, Arrays.asList(bootCP, compileCP, sourceCP), new AtomicBoolean());
-                List<HintDescription> hints = new ArrayList<>();
-                for (Collection<? extends HintDescription> v : allHints.values()) {
-                    hints.addAll(v);
-                }
-                final Map<String, String> id2DisplayName = Utils.computeId2DisplayName(hints);
-                final Map<HintMetadata, ? extends Collection<? extends HintDescription>> hardcodedHints = RulesManager.getInstance().readHints(null, null, new AtomicBoolean());
-                final HintsSettings settings;
-                String configurationFileLoc = processingEnv.getOptions().get(CONFIGURATION_OPTION);
-                File configurationFile = configurationFileLoc != null ? new File(configurationFileLoc) : null;
-
-                if (configurationFile == null || !configurationFile.canRead()) {
-                    settings = new HintsSettings() {
-
-                        @Override
-                        public boolean isEnabled(HintMetadata hm) {
-                            return !hardcodedHints.containsKey(hm) ? hm.enabled : false;
-                        }
-
-                        @Override
-                        public void setEnabled(HintMetadata hm, boolean bln) {
-                            throw new UnsupportedOperationException();
-                        }
-
-                        @Override
-                        public Preferences getHintPreferences(HintMetadata hm) {
-                            return new DummyPreferences(null, "");
-                        }
-
-                        @Override
-                        public Severity getSeverity(HintMetadata hm) {
-                            return hm.severity;
-                        }
-
-                        @Override
-                        public void setSeverity(HintMetadata hm, Severity svrt) {
-                            throw new UnsupportedOperationException();
-                        }
-                    };
-                } else {
-                    settings = HintsSettings.createPreferencesBasedHintsSettings(ToolPreferences.from(configurationFile.toURI()).getPreferences("hints", "text/x-java"), true, null);
-                }
-
-                ClasspathInfo cpInfo = ClasspathInfo.create(bootCP, compileCP, sourceCP);
-
-                JavaSource.create(cpInfo, sourceFiles.keySet()).runUserActionTask(new Task<CompilationController>() {
-
-                    @Override
-                    public void run(CompilationController parameter) throws Exception {
-                        if (parameter.toPhase(JavaSource.Phase.RESOLVED).compareTo(JavaSource.Phase.RESOLVED) < 0) {
-                            return;
-                        }
-
-                        List<ErrorDescription> eds = new HintsInvoker(settings, /*XXX*/new AtomicBoolean()).computeHints(parameter);
-
-                        if (eds != null) {
-                            for (ErrorDescription ed : eds) {
-                                String outtermost = sourceFiles.get(ed.getFile());
-                                TypeElement type = processingEnv.getElementUtils().getTypeElement(outtermost); //XXX: package-info!!!
-                                TreePath typePath = trees.getPath(type);
-                                TreePath posPath = pathFor(typePath.getCompilationUnit(), trees.getSourcePositions(), ed.getRange().getBegin().getOffset());
-                                String category = Utils.categoryName(ed.getId(), id2DisplayName);
-                                Kind diagKind;
-                                switch (ed.getSeverity()) {
-                                    case ERROR: diagKind = Kind.ERROR; break;
-                                    case VERIFIER:
-                                    case WARNING: diagKind = Kind.WARNING; break;
-                                    case HINT:
-                                    default: diagKind = Kind.NOTE; break;
-                                }
-                                trees.printMessage(diagKind, category + ed.getDescription(), posPath.getLeaf(), posPath.getCompilationUnit());
-                            }
-                        }
-                    }
-                }, true);
-            } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException | NoSuchMethodException | InvocationTargetException | IOException ex) {
-                processingEnv.getMessager().printMessage(Kind.ERROR, "Unexpected exception: " + ex.getMessage());
-                Logger.getLogger(ProcessorImpl.class.getName()).log(Level.SEVERE, null, ex);
-            }
+            });
         }
 
         return false;
+    }
+
+    private void runHints() {
+        Trees trees = Trees.instance(processingEnv);
+        Level originalLoggerLevel = TOP_LOGGER.getLevel();
+        Path toDelete = null;
+        try {
+            TOP_LOGGER.setLevel(Level.OFF);
+            System.setProperty("RepositoryUpdate.increasedLogLevel", "OFF");
+            Field contextField = processingEnv.getClass().getDeclaredField("context");
+            contextField.setAccessible(true);
+            Object context = contextField.get(processingEnv);
+            Method get = context.getClass().getDeclaredMethod("get", Class.class);
+            JavaFileManager fileManager = (JavaFileManager) get.invoke(context, JavaFileManager.class);
+
+            if (!(fileManager instanceof StandardJavaFileManager)) {
+                processingEnv.getMessager().printMessage(Kind.ERROR, "The file manager is not a StandardJavaFileManager, cannot run Jackpot 3.0.");
+                return ;
+            }
+
+            setupCache();
+
+            StandardJavaFileManager sfm = (StandardJavaFileManager) fileManager;
+
+            ClassPath bootCP = /*XXX*/Utils.createDefaultBootClassPath();//toClassPath(sfm.getLocation(StandardLocation.PLATFORM_CLASS_PATH));
+            ClassPath compileCP = toClassPath(sfm.getLocation(StandardLocation.CLASS_PATH));
+            Iterable<? extends File> sourcePathLocation = sfm.getLocation(StandardLocation.SOURCE_PATH);
+            ClassPath sourceCP = sourcePathLocation != null ? toClassPath(sourcePathLocation) : inferSourcePath();
+
+            final Map<FileObject, CompilationUnitTree> sourceFiles = new HashMap<>();
+
+            for (Entry<URL, CompilationUnitTree> e : sources.entrySet()) {
+                FileObject fo = URLMapper.findFileObject(e.getKey());
+                if (fo == null) {
+                    //XXX:
+                    return ;
+                }
+                sourceFiles.put(fo, e.getValue());
+            }
+
+            URI settingsURI;
+            String configurationFileLoc = processingEnv.getOptions().get(CONFIGURATION_OPTION);
+            File configurationFile = configurationFileLoc != null ? new File(configurationFileLoc) : null;
+
+            if (configurationFile == null || !configurationFile.canRead()) {
+                URL cfg = ProcessorImpl.class.getResource("/org/netbeans/modules/jackpot30/cmdline/cfg_hints.xml");
+                Path tmp = Files.createTempFile("cfg_hints", "xml"); //TODO: delete
+                try (InputStream cfgIn = cfg.openStream();
+                     OutputStream out = Files.newOutputStream(tmp)) {
+                    int read;
+                    while ((read = cfgIn.read()) != (-1))
+                        out.write(read);
+                }
+                settingsURI = tmp.toUri();
+                toDelete = tmp;
+            } else {
+                settingsURI = configurationFile.toURI();
+            }
+
+            HintsSettings settings = HintsSettings.createPreferencesBasedHintsSettings(ToolPreferences.from(settingsURI).getPreferences("hints", "text/x-java"), true, null);
+
+            final Map<HintMetadata, ? extends Collection<? extends HintDescription>> allHints = RulesManager.getInstance().readHints(null, Arrays.asList(bootCP, compileCP, sourceCP), new AtomicBoolean());
+            List<HintDescription> hints = new ArrayList<>();
+
+            for (Entry<HintMetadata, ? extends Collection<? extends HintDescription>> e : allHints.entrySet()) {
+                if (settings.isEnabled(e.getKey()) && e.getKey().kind == Hint.Kind.INSPECTION && !e.getKey().options.contains(HintMetadata.Options.NO_BATCH)) {
+                    hints.addAll(e.getValue());
+                }
+            }
+            final Map<String, String> id2DisplayName = Utils.computeId2DisplayName(hints);
+            ClasspathInfo cpInfo = new ClasspathInfo.Builder(bootCP).setClassPath(compileCP).setSourcePath(sourceCP).setModuleBootPath(bootCP).build();
+
+            JavaSource.create(cpInfo, sourceFiles.keySet()).runUserActionTask(new Task<CompilationController>() {
+
+                @Override
+                public void run(CompilationController parameter) throws Exception {
+                    if (parameter.toPhase(JavaSource.Phase.RESOLVED).compareTo(JavaSource.Phase.RESOLVED) < 0) {
+                        return;
+                    }
+
+                    List<ErrorDescription> eds = new HintsInvoker(settings, /*XXX*/new AtomicBoolean()).computeHints(parameter, hints);
+
+                    if (eds != null) {
+                        //TODO: sort errors!!!
+                        for (ErrorDescription ed : eds) {
+                            CompilationUnitTree originalUnit = sourceFiles.get(ed.getFile());
+                            if (originalUnit == null) {
+                                //XXX: log properly!!!
+                                continue;
+                            }
+                            TreePath posPath = pathFor(originalUnit, trees.getSourcePositions(), ed.getRange().getBegin().getOffset());
+                            String category = Utils.categoryName(ed.getId(), id2DisplayName);
+                            Kind diagKind;
+                            switch (ed.getSeverity()) {
+                                case ERROR: diagKind = Kind.ERROR; break;
+                                case VERIFIER:
+                                case WARNING: diagKind = Kind.WARNING; break;
+                                case HINT:
+                                default: diagKind = Kind.NOTE; break;
+                            }
+                            trees.printMessage(diagKind, category + ed.getDescription(), posPath.getLeaf(), posPath.getCompilationUnit());
+                        }
+                    }
+                }
+            }, true);
+        } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException | NoSuchMethodException | InvocationTargetException | IOException ex) {
+            processingEnv.getMessager().printMessage(Kind.ERROR, "Unexpected exception: " + ex.getMessage());
+            Logger.getLogger(ProcessorImpl.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            TOP_LOGGER.setLevel(originalLoggerLevel);
+            if (toDelete != null) {
+                try {
+                    Files.delete(toDelete);
+                } catch (IOException ex) {
+                    processingEnv.getMessager().printMessage(Kind.ERROR, "Unexpected exception: " + ex.getMessage());
+                    Logger.getLogger(ProcessorImpl.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        }
     }
 
     private static ClassPath toClassPath(Iterable<? extends File> files) throws MalformedURLException {
@@ -257,9 +285,11 @@ public class ProcessorImpl extends AbstractProcessor {
     }
 
     private TypeElement outtermostType(Element el) {
-        while (el.getEnclosingElement().getKind() != ElementKind.PACKAGE) { //XXX: package-info!
+        while (/*XXX: package/module-info!*/el.getEnclosingElement() != null && el.getEnclosingElement().getKind() != ElementKind.PACKAGE) {
             el = el.getEnclosingElement();
         }
+        if (el.getKind() == ElementKind.PACKAGE || el.getKind().name().equals("MODULE"))
+            return null;
         return (TypeElement) el;
     }
 
@@ -292,13 +322,14 @@ public class ProcessorImpl extends AbstractProcessor {
     private ClassPath inferSourcePath() {
         if (sources.isEmpty())
             return ClassPath.EMPTY;
-        Entry<URL, String> e = sources.entrySet().iterator().next();
+        Entry<URL, CompilationUnitTree> e = sources.entrySet().iterator().next();
         FileObject sourceRoot = URLMapper.findFileObject(e.getKey());
         if (sourceRoot == null) {
             //unexpected
             return ClassPath.EMPTY;
         }
-        for (String part : e.getValue().split("\\.")) {
+        sourceRoot = sourceRoot.getParent();
+        for (String part : e.getValue().getPackageName().toString().split("\\.")) {
             sourceRoot = sourceRoot.getParent();
         }
         return ClassPathSupport.createClassPath(sourceRoot);
@@ -316,6 +347,15 @@ public class ProcessorImpl extends AbstractProcessor {
             Lookup.getDefault();
         } finally {
             Thread.currentThread().setContextClassLoader(origContext);
+        }
+    }
+
+    private static final class ModuleAndClass {
+        public final String module;
+        public final String name;
+        public ModuleAndClass(String module, String name) {
+            this.module = module;
+            this.name = name;
         }
     }
 

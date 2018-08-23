@@ -16,11 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.jackpot30.ap;
+package org.netbeans.modules.jackpot30.cmdline;
 
 import com.sun.tools.javac.Main;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,8 +34,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
-import org.netbeans.api.java.source.TestUtilities;
 import org.netbeans.junit.NbTestCase;
+import org.openide.filesystems.FileUtil;
 
 /**
  *
@@ -46,7 +49,13 @@ public class ProcessorImplTest extends NbTestCase {
 
     public void testHardcoded1() throws Exception {
         doRunCompiler("",
-                      "",
+                      "${workdir}/src/test/Test.java:4: warning: [Usage_of_size_equals_0] Usage of .size() == 0 can be replaced with .isEmpty()\n" +
+                      "        boolean b1 = c.size() == 0;\n" +
+                      "                      ^\n" +
+                      "${workdir}/src/test/Test.java:5: warning: [Usage_of_size_equals_0] Usage of .size() == 0 can be replaced with .isEmpty()\n" +
+                      "\tboolean b2 = c.size() == 0;\n" +
+                      "\t              ^\n" +
+                      "2 warnings\n",
                       "src/test/Test.java",
                       "package test;\n" +
                       "public class Test {\n" +
@@ -83,6 +92,9 @@ public class ProcessorImplTest extends NbTestCase {
                       "<!DOCTYPE configuration PUBLIC \"-//NetBeans//DTD Tool Configuration 1.0//EN\" \"http://www.netbeans.org/dtds/ToolConfiguration-1_0.dtd\">\n" +
                       "<configuration>\n" +
                       "    <tool kind=\"hints\" type=\"text/x-java\">\n" +
+                      "        <node name=\"org.netbeans.modules.java.hints.jdk.ConvertToVarHint\">\n" +
+                      "            <attribute name=\"enabled\" value=\"false\"/>\n" +
+                      "        </node>\n" +
                       "    </tool>\n" +
                       "</configuration>\n",
                       null,
@@ -104,13 +116,14 @@ public class ProcessorImplTest extends NbTestCase {
                       "src/test/Test.java",
                       "package test;\n" +
                       "public class Test {\n" +
-                      "    private void test(java.util.Collection c) {\n" +
+                      "    private void test(Test c) {\n" +
                       "        boolean b1 = c.size() == 0;\n" +
                       "\tboolean b2 = c.size() == 0;\n" +
                       "    }\n" +
+                      "    public int size() { return 0; }\n" +
                       "}\n",
                       "src/META-INF/upgrade/test.hint",
-                      "$coll.size() == 0 :: $coll instanceof java.util.Collection;;\n",
+                      "$coll.size() == 0 :: $coll test.Test;;\n",
                       null,
                       "-source",
                       "7",
@@ -131,13 +144,14 @@ public class ProcessorImplTest extends NbTestCase {
                       "src/test/Test.java",
                       "package test;\n" +
                       "public class Test {\n" +
-                      "    private void test(java.util.Collection c) {\n" +
+                      "    private void test(Test c) {\n" +
                       "        boolean b1 = c.size() == 0;\n" +
                       "\tboolean b2 = c.size() == 0;\n" +
                       "    }\n" +
+                      "    public int size() { return 0; }\n" +
                       "}\n",
                       "src/META-INF/upgrade/test.hint",
-                      "$coll.size() == 0 :: $coll instanceof java.util.Collection;;\n",
+                      "$coll.size() == 0 :: $coll test.Test;;\n",
                       null,
                       "-source",
                       "7",
@@ -164,12 +178,15 @@ public class ProcessorImplTest extends NbTestCase {
 
         List<String> params = new ArrayList<>();
 
+        params.add("-processor");
+        params.add(ProcessorImpl.class.getName());
+
         for (int cntr = 0; cntr < fileAndContent.size(); cntr += 2) {
             File target = new File(getWorkDir(), fileAndContent.get(cntr));
 
             target.getParentFile().mkdirs();
 
-            TestUtilities.copyStringToFile(target, fileAndContent.get(cntr + 1));
+            Utils.copyStringToFile(target, fileAndContent.get(cntr + 1));
 
             if (target.getName().endsWith(".java"))
                 params.add(target.getAbsolutePath());
@@ -179,7 +196,7 @@ public class ProcessorImplTest extends NbTestCase {
 
         File wd = getWorkDir();
         String[] output = new String[2];
-        reallyRunCompiler(wd, output, params.toArray(new String[0]));
+        reallyRunCompiler(wd, 0, output, params.toArray(new String[0]));
 
         if (stdOut != null) {
             assertEquals(stdOut, output[0].replaceAll(Pattern.quote(wd.getAbsolutePath()), Matcher.quoteReplacement("${workdir}")));
@@ -190,7 +207,7 @@ public class ProcessorImplTest extends NbTestCase {
         }
     }
 
-    protected void reallyRunCompiler(File workDir, String[] output, String... params) throws Exception {
+    protected void reallyRunCompiler(File workDir, int exitcode, String[] output, String... params) throws Exception {
         String oldUserDir = System.getProperty("user.dir");
 
         System.setProperty("user.dir", workDir.getAbsolutePath());
@@ -204,7 +221,7 @@ public class ProcessorImplTest extends NbTestCase {
         System.setErr(new PrintStream(errData, true, "UTF-8"));
 
         try {
-            assertEquals(0, Main.compile(params));
+            assertEquals(exitcode, Main.compile(params));
         } finally {
             System.setProperty("user.dir", oldUserDir);
             System.out.close();

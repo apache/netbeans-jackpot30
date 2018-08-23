@@ -19,6 +19,8 @@
 package org.netbeans.modules.jackpot30.cmdline;
 
 import java.util.regex.Pattern;
+import javax.annotation.processing.Processor;
+import org.netbeans.modules.jackpot30.cmdline.Main.BCPFallBack;
 import org.netbeans.modules.jackpot30.cmdline.lib.CreateStandaloneJar;
 import org.netbeans.modules.jackpot30.cmdline.lib.CreateStandaloneJar.Info;
 import org.netbeans.modules.java.hints.declarative.PatternConvertorImpl;
@@ -27,6 +29,7 @@ import org.netbeans.modules.java.hints.jackpot.spi.PatternConvertor;
 import org.netbeans.modules.java.j2seproject.J2SEProject;
 import org.netbeans.modules.java.platform.DefaultJavaPlatformProvider;
 import org.netbeans.modules.project.ui.OpenProjectsTrampolineImpl;
+import org.netbeans.spi.java.classpath.ClassPathProvider;
 
 /**
  *
@@ -40,13 +43,14 @@ public class CreateTool extends CreateStandaloneJar {
 
     @Override
     protected Info computeInfo() {
-        return new Info().addAdditionalRoots(Main.class.getName(), DeclarativeHintsTestBase.class.getName(), OpenProjectsTrampolineImpl.class.getName(), J2SEProject.class.getName(), DefaultJavaPlatformProvider.class.getName(), PatternConvertorImpl.class.getName())
-                         .addAdditionalResources("org/netbeans/modules/java/hints/resources/Bundle.properties", "org/netbeans/modules/java/hints/declarative/resources/Bundle.properties")
+        return new Info().addAdditionalRoots(Main.class.getName(), DeclarativeHintsTestBase.class.getName(), OpenProjectsTrampolineImpl.class.getName(), J2SEProject.class.getName(), DefaultJavaPlatformProvider.class.getName(), PatternConvertorImpl.class.getName(), ProcessorImpl.class.getName(), BCPFallBack.class.getName())
+                         .addAdditionalResources("org/netbeans/modules/java/hints/resources/Bundle.properties", "org/netbeans/modules/java/hints/declarative/resources/Bundle.properties", "org/netbeans/modules/jackpot30/cmdline/cfg_hints.xml")
                          .addAdditionalLayers("org/netbeans/modules/java/hints/resources/layer.xml", "org/netbeans/modules/java/hints/declarative/resources/layer.xml")
                          .addMetaInfRegistrations(new MetaInfRegistration(org.netbeans.modules.project.uiapi.OpenProjectsTrampoline.class, OpenProjectsTrampolineImpl.class))
+                         .addMetaInfRegistrations(new MetaInfRegistration(Processor.class, ProcessorImpl.class))
+                         .addMetaInfRegistrations(new MetaInfRegistration(ClassPathProvider.class.getName(), BCPFallBack.class.getName(), 9999))
                          .addMetaInfRegistrationToCopy(PatternConvertor.class.getName())
-                         .addExcludePattern(Pattern.compile("junit\\.framework\\..*"))
-                         .setEscapeJavaxLang();
+                         .addExcludePattern(Pattern.compile("junit\\.framework\\..*"));
     }
 
 }

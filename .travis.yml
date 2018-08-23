@@ -23,4 +23,4 @@ before_script:
 script:
   - export JDK10=$JAVA_HOME
   - jdk_switcher use oraclejdk8
-  - (cd cmdline; ant -Dnbplatform.default.harness.dir=$HOME/src/nb/release90/nbbuild/netbeans/harness -DNETBEANS_PLATFORM=$HOME/netbeans -DJDK10=$JDK10 build-and-test)
+  - (cd cmdline; ant -Dnbplatform.default.harness.dir=$HOME/netbeans/harness -DNETBEANS_PLATFORM=$HOME/netbeans -DJDK10=$JDK10 build-and-test)

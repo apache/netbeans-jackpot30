@@ -19,10 +19,8 @@ jdk:
   - openjdk10
 before_script:
   - wget 'http://www.apache.org/dyn/closer.lua?action=download&filename=incubator/netbeans/incubating-netbeans-java/incubating-9.0/incubating-netbeans-java-9.0-bin.zip' -O /tmp/incubating-netbeans-java-9.0-bin.zip
-  - echo $PWD
   - (cd $HOME; unzip /tmp/incubating-netbeans-java-9.0-bin.zip)
-  - ls $HOME
 script:
   - export JDK10=$JAVA_HOME
   - jdk_switcher use oraclejdk8
-  - (cd cmdline; ant -DNETBEANS_PLATFORM=$HOME/netbeans -DJDK10=$JDK10 build-and-test)
+  - (cd cmdline; ant -Dnbplatform.default.harness.dir=$HOME/src/nb/release90/nbbuild/netbeans/harness -DNETBEANS_PLATFORM=$HOME/netbeans -DJDK10=$JDK10 build-and-test)

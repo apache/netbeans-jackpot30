@@ -24,6 +24,20 @@
     <import file="nbproject/build-impl.xml"/>
     <!--<import file="${suite.dir}/../findbugs-import.xml"/>-->
 
+    <target name="-check-joptsimple">
+        <condition property="has.joptsimple">
+            <available file="lib/jopt-simple-3.2.jar" />
+        </condition>
+    </target>
+
+    <target name="-download-joptsimple" depends="-check-joptsimple" unless="has.joptsimple">
+        <mkdir dir="lib" />
+        <get src="http://central.maven.org/maven2/net/sf/jopt-simple/jopt-simple/3.2/jopt-simple-3.2.jar"
+             dest="lib/jopt-simple-3.2.jar" usetimestamp="true"/>
+    </target>
+
+    <target name="build-init" depends="harness.build-init,-download-joptsimple" />
+
     <target name="create-standalone-tool" depends="init,netbeans">
         <mkdir dir="${build.classes.dir}/../jackpot" />
         <copy todir="${build.classes.dir}/../jackpot">

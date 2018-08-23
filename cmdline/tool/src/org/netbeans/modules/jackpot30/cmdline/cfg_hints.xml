@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//NetBeans//DTD Tool Configuration 1.0//EN" "http://www.netbeans.org/dtds/ToolConfiguration-1_0.dtd">
+<configuration>
+    <tool kind="hints" type="text/x-java">
+        <node name="org.netbeans.modules.java.hints.IncompatibleMask">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.ShiftOutOfRange">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.PointlessBitwiseExpression">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.ClassStructure.finalPrivateMethod">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.jdk.ConvertToStringSwitch">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.perf.SizeEqualsZero">
+            <attribute name="check.not.equals" value="true"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.finalize.FinalizeDeclared">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="o.n.m.j2ee.jpa.verification.NoIdClassOnEntitySubclass">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="Javac_canUseDiamond">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.apisupport.hints.HelpCtxHint">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="o.n.m.j2ee.jpa.verification.IdClassOverridesEqualsAndHashCode">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.jdk.UnnecessaryBoxing.run">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="o.n.m.j2ee.jpa.verification.HasNoArgConstructor">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="o.n.m.j2ee.jpa.verification.QueriesProperlyDefined">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.jdk.JoinCatches">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="Imports_DEFAULT_PACKAGE">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.errors.ErrorFixesFakeHintCREATE_FINAL_FIELD_CTOR">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.suggestions.ConstantNameHint">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="o.n.m.j2ee.jpa.verification.OnlyEntityOrMappedSuperclassCanUseIdClass">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.ExportNonAccessibleElement">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="Imports_EXCLUDED">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="o.n.m.j2ee.jpa.verification.ValidAttributes">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="o.n.m.j2ee.jpa.verification.IdDefinedInHierarchy">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.SuspiciousNamesCombination">
+            <attribute name="groups" value="x, width|y, height"/>
+        </node>
+        <node name="o.n.m.j2ee.jpa.verification.NonFinalClass">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.jdk.IndexOfToContains">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.LoggerNotStaticFinal">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.errors.ErrorFixesFakeHintSURROUND_WITH_TRY_CATCH">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.jackpot.hintsimpl.LoggerStringConcat">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.jdk.UseSpecificCatch">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="o.n.m.j2ee.jpa.verification.PublicClass">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.MultipleLoggers">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="EmptyStatements_WHILE_LOOP">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="create-javadoc">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.suggestions.ConvertIfToSwitch">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.perf.Tiny.constantIntern">
+            <attribute name="enabled" value="true"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.testing.Tiny.assertEqualsForArrays">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.jdk.ConvertToARM">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="EmptyStatements_DO_WHILE_LOOP">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.StaticNonFinalUsedInInitialization">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.testing.Tiny.incovertibleTypes">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="o.n.m.j2ee.jpa.verification.JPAAnnotsOnlyOnAccesor">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="o.n.m.j2ee.jpa.verification.LegalCombinationOfAnnotations">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.bugs.NPECheck">
+            <attribute name="unboxing-unknown" value="false"/>
+            <attribute name="enable-for-fields" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.jdk.IteratorToFor">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="o.n.m.j2ee.jpa.verification.ValidPrimaryTableName">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.testing.Tiny.mismatchedConstantVSReal">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="EmptyStatements_FOR_LOOP">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="o.n.m.j2ee.jpa.verification.SerializableClass">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="o.n.m.j2ee.jpa.verification.PersistenceUnitPresent">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="EmptyStatements_BLOCK">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.finalize.FinalizeDoesNotCallSuper">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="Javac_canUseLambda">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.perf.Tiny.getClassInsteadOfDotClass">
+            <attribute name="enabled" value="true"/>
+        </node>
+        <node name="Imports_SAME_PACKAGE">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="Imports_UNUSED">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="Inspection.hint">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.errors.ErrorFixesFakeHintCREATE_LOCAL_VARIABLE">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.apisupport.hints.UseNbBundleMessages">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.LeakingThisInConstructor">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.InitializerCanBeStatic">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.OverridableMethodCallInConstructor">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="o.n.m.j2ee.jpa.verification.UniqueEntityName">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.errors.ErrorFixesFakeHintIMPORT_CLASS">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.jdk.ConvertToVarHint">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="o.n.m.j2ee.jpa.verification.TopLevelClass">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.ObsoleteCollection">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.jdk.ConvertVarToExplicitType">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.finalize.CallFinalize">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.jdk.UnnecessaryUnboxing">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="o.n.m.j2ee.jpa.verification.JPQLValidation">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="MAVEN_SEARCH_HINT">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.jdk.AnnotationProcessors.oGSA">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="o.n.m.j2ee.jpa.verification.ConsistentAccessType">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="error-in-javadoc">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.AddOverrideAnnotation">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="AnnotationAsSuperInterface">
+            <attribute name="enabled" value="false"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.perf.Tiny.stringEqualsEmpty">
+            <attribute name="enabled" value="true"/>
+        </node>
+    </tool>
+</configuration>

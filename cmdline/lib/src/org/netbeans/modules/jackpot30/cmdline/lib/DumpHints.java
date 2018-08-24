@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import org.codeviation.pojson.Pojson;
+//import org.codeviation.pojson.Pojson;
 import org.netbeans.modules.java.hints.providers.spi.HintMetadata;
 import org.netbeans.modules.java.hints.spiimpl.RulesManager;
 
@@ -33,21 +33,22 @@ import org.netbeans.modules.java.hints.spiimpl.RulesManager;
 public class DumpHints {
 
     public static String dumpHints() {
-        List<Map<String, String>> data = new LinkedList<Map<String, String>>();
-
-        for (HintMetadata hm : RulesManager.getInstance().readHints(null, null, null).keySet()) {
-            Map<String, String> hintData = new HashMap<String, String>();
-
-            hintData.put("id", hm.id);
-            hintData.put("category", hm.category);
-            hintData.put("displayName", hm.displayName);
-            hintData.put("description", hm.description);
-            hintData.put("enabled", Boolean.toString(hm.enabled));
-
-            data.add(hintData);
-        }
-
-        return Pojson.save(data);
+//        List<Map<String, String>> data = new LinkedList<Map<String, String>>();
+//
+//        for (HintMetadata hm : RulesManager.getInstance().readHints(null, null, null).keySet()) {
+//            Map<String, String> hintData = new HashMap<String, String>();
+//
+//            hintData.put("id", hm.id);
+//            hintData.put("category", hm.category);
+//            hintData.put("displayName", hm.displayName);
+//            hintData.put("description", hm.description);
+//            hintData.put("enabled", Boolean.toString(hm.enabled));
+//
+//            data.add(hintData);
+//        }
+//
+//        return Pojson.save(data);
+        throw new IllegalStateException();
     }
 
     public static void main(String[] args) {

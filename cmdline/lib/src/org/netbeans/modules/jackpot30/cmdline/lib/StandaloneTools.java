@@ -65,6 +65,9 @@ import org.openide.util.NbPreferences;
 import org.openide.util.NbPreferences.Provider;
 import org.openide.util.lookup.Lookups;
 import org.openide.util.lookup.ServiceProvider;
+import org.openide.xml.EntityCatalog;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 /**XXX: should not include JavaCustomIndexer for tools that do not strictly require it
  *
@@ -235,15 +238,13 @@ public class StandaloneTools {
                 List<URL> layers = new LinkedList<URL>();
                 boolean found = false;
 
-                for (Enumeration<URL> en = Thread.currentThread().getContextClassLoader().getResources("META-INF/generated-layer.xml"); en.hasMoreElements();) {
+                for (Enumeration<URL> en = RepositoryImpl.class.getClassLoader().getResources("META-INF/generated-layer.xml"); en.hasMoreElements();) {
                     found = true;
                     layers.add(en.nextElement());
                 }
 
                 assert found;
 
-                System.err.println("layers=" + layers);
-                
                 XMLFileSystem xmlFS = new XMLFileSystem();
 
                 xmlFS.setXmlUrls(layers.toArray(new URL[0]));
@@ -262,37 +263,9 @@ public class StandaloneTools {
 
         @Override
         public ClasspathInfo createUniversalCPInfo() {
-            return ClasspathInfo.create(sysProp2CP("sun.boot.class.path"), ClassPath.EMPTY, ClassPath.EMPTY);
+            return ClasspathInfo.create(Utils.createDefaultBootClassPath(), ClassPath.EMPTY, ClassPath.EMPTY);
         }
 
-    }
-
-    //Copied from FallbackDefaultJavaPlatform:
-    private static ClassPath sysProp2CP(String propname) {
-        String sbcp = System.getProperty(propname);
-        if (sbcp == null) {
-            return null;
-        }
-        List<URL> roots = new ArrayList<URL>();
-        StringTokenizer tok = new StringTokenizer(sbcp, File.pathSeparator);
-        while (tok.hasMoreTokens()) {
-            File f = new File(tok.nextToken());
-            if (!f.exists()) {
-                continue;
-            }
-            f = FileUtil.normalizeFile(f);
-            URL u;
-            try {
-                u = f.toURI().toURL();
-            } catch (MalformedURLException x) {
-                throw new AssertionError(x);
-            }
-            if (FileUtil.isArchiveFile(u)) {
-                u = FileUtil.getArchiveRoot(u);
-            }
-            roots.add(u);
-        }
-        return ClassPathSupport.createClassPath(roots.toArray(new URL[roots.size()]));
     }
 
     @ServiceProvider(service=MIMEResolver.class)
@@ -352,6 +325,19 @@ public class StandaloneTools {
 
         @Override
         public void removePropertyChangeListener(PropertyChangeListener listener) {
+        }
+
+    }
+
+    @ServiceProvider(service=EntityCatalog.class, position=100)
+    public static final class EntityCatalogImpl extends EntityCatalog {
+
+        @Override
+        public InputSource resolveEntity(String arg0, String arg1) throws SAXException, IOException {
+            if ("-//NetBeans//DTD Tool Configuration 1.0//EN".equals(arg0)) {
+                return new InputSource(EntityCatalogImpl.class.getResourceAsStream("/org/netbeans/modules/editor/tools/storage/ToolConfiguration-1_0.dtd"));
+            }
+            return null;
         }
 
     }

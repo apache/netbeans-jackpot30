@@ -24,15 +24,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import junit.extensions.TestSetup;
 import junit.framework.Test;
-import org.hamcrest.Condition;
-import org.junit.runner.JUnitCore;
 import org.netbeans.junit.NbTestSuite;
 import org.openide.filesystems.FileUtil;
 import org.openide.util.Exceptions;
@@ -41,28 +36,28 @@ import org.openide.util.Exceptions;
  *
  * @author lahvac
  */
-public class CreateToolTest extends MainTest {
+public class CreateToolProcessorTest extends ProcessorImplTest {
 
-    public CreateToolTest(String name) {
+    public CreateToolProcessorTest(String name) {
         super(name);
     }
 
     private static File compiler;
 
     @Override
-    protected void reallyRunCompiler(File workingDir, int exitcode, String[] output, String... params) throws Exception {
+    protected void reallyRunCompiler(File workDir, int exitcode, String[] output, String... params) throws Exception {
         assertNotNull(compiler);
         List<String> ll = new LinkedList<String>();
-        ll.addAll(Utils.findJavaLauncher());
+        ll.addAll(Utils.findJavacLauncher());
+
+//        ll.add("-J-Xdebug");
+//        ll.add("-J-Xrunjdwp:transport=dt_socket,suspend=y,server=y,address=8889");
+
         ll.add("-classpath"); ll.add(compiler.getAbsolutePath());
-
-//        ll.add("-Xdebug");
-//        ll.add("-Xrunjdwp:transport=dt_socket,suspend=y,server=y,address=8889");
-
-        ll.add("org.netbeans.modules.jackpot30.cmdline.Main");
         ll.addAll(Arrays.asList(params));
+        System.err.println("ll=" + ll);
         try {
-            Process p = Runtime.getRuntime().exec(ll.toArray(new String[0]), null, workingDir);
+            Process p = Runtime.getRuntime().exec(ll.toArray(new String[0]), null, workDir);
             CopyStream outCopy = new CopyStream(p.getInputStream(), output, 0);
             CopyStream errCopy = new CopyStream(p.getErrorStream(), output, 1);
 
@@ -75,55 +70,6 @@ public class CreateToolTest extends MainTest {
             errCopy.doJoin();
         } catch (Throwable t) {
             throw new IOException(t);
-        }
-    }
-    
-    private static final Set<String> MUST_CONTAIN = new HashSet<String>(Arrays.asList(" 1 failure", "/h.test/neg", "Tests run: 2,  Failures: 1"));
-    private static final Set<String> MUST_NOT_CONTAIN = new HashSet<String>(Arrays.asList("/h.test/pos"));
-
-    @Override
-    protected void runAndTest(File classes) throws Exception {
-        List<String> ll = new LinkedList<String>();
-        ll.addAll(Utils.findJavaLauncher());
-        ll.add("-classpath");
-        ll.add(compiler.getAbsolutePath() + File.pathSeparator + classes.getAbsolutePath() + File.pathSeparator + new File(JUnitCore.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getAbsolutePath() + File.pathSeparator + new File(Condition.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getAbsolutePath());
-
-//        ll.add("-Xdebug");
-//        ll.add("-Xrunjdwp:transport=dt_socket,suspend=y,server=y,address=8889");
-
-        ll.add("org.junit.runner.JUnitCore");
-        ll.add("org.netbeans.modules.jackpot30.cmdline.testtool.DoRunTests");
-
-        System.err.println("ll=" + ll);
-        Process p = Runtime.getRuntime().exec(ll.toArray(new String[0]), null, getWorkDir());
-        String[] output = new String[2];
-        CopyStream outCopy = new CopyStream(p.getInputStream(), output, 0);
-        CopyStream errCopy = new CopyStream(p.getErrorStream(), output, 1);
-
-        outCopy.start();
-        errCopy.start();
-
-        p.waitFor();
-
-        outCopy.doJoin();
-        errCopy.doJoin();
-
-        Set<String> mustContainCopy = new HashSet<String>(MUST_CONTAIN);
-
-        System.err.println(output[0]);
-        System.err.println(output[1]);
-
-        verify(output[0], mustContainCopy);
-        verify(output[1], mustContainCopy);
-    }
-
-    private void verify(String output, Set<String> mustContainCopy) {
-        for (Iterator<String> it = mustContainCopy.iterator(); it.hasNext();) {
-            assertTrue(output.contains(it.next()));
-            it.remove();
-        }
-        for (String nc : MUST_NOT_CONTAIN) {
-            assertFalse(output.contains(nc));
         }
     }
 
@@ -165,8 +111,8 @@ public class CreateToolTest extends MainTest {
 
     public static Test suite() {
         NbTestSuite suite = new NbTestSuite();
-        
-        suite.addTestSuite(CreateToolTest.class);
+
+        suite.addTestSuite(CreateToolProcessorTest.class);
 
         return new TestSetup(suite) {
             private File hintsList;

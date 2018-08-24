@@ -18,8 +18,6 @@
  */
 package org.netbeans.modules.jackpot30.cmdline.lib;
 
-import com.sun.source.tree.Tree;
-import com.sun.tools.javac.api.JavacTool;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -31,6 +29,7 @@ import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.URL;
+import java.net.URLStreamHandlerFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -45,7 +44,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.jar.JarOutputStream;
-import java.util.jar.Manifest;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttributeImpl;
@@ -57,11 +55,12 @@ import org.netbeans.modules.classfile.ClassFile;
 import org.netbeans.modules.classfile.ClassName;
 import org.netbeans.modules.editor.mimelookup.MimeLookupCacheSPI;
 import org.netbeans.modules.editor.mimelookup.SharedMimeLookupCache;
+import org.netbeans.modules.editor.tools.storage.api.ToolPreferences;
 import org.netbeans.modules.jackpot30.cmdline.lib.StandaloneTools.ActiveDocumentProviderImpl;
 import org.netbeans.modules.jackpot30.cmdline.lib.StandaloneTools.EditorMimeTypesImplementationImpl;
+import org.netbeans.modules.jackpot30.cmdline.lib.StandaloneTools.EntityCatalogImpl;
 import org.netbeans.modules.jackpot30.cmdline.lib.StandaloneTools.JavaMimeResolver;
 import org.netbeans.modules.jackpot30.cmdline.lib.StandaloneTools.RepositoryImpl;
-import org.netbeans.modules.jackpot30.common.api.IndexAccess;
 import org.netbeans.modules.java.classpath.DefaultGlobalPathRegistryImplementation;
 import org.netbeans.modules.java.hints.StandardJavacWarnings.CompilerSettingsImpl;
 import org.netbeans.modules.java.hints.declarative.DeclarativeHintRegistry;
@@ -73,8 +72,16 @@ import org.netbeans.modules.java.hints.providers.spi.HintProvider;
 import org.netbeans.modules.java.hints.spiimpl.RulesManager;
 import org.netbeans.modules.java.hints.spiimpl.RulesManagerImpl;
 import org.netbeans.modules.java.hints.spiimpl.Utilities.SPI;
+import org.netbeans.modules.java.j2seplatform.platformdefinition.jrtfs.NBJRTURLMapper;
+import org.netbeans.modules.java.j2seplatform.platformdefinition.jrtfs.NBJRTURLStreamHandler;
 import org.netbeans.modules.java.source.DefaultPositionRefProvider;
 import org.netbeans.modules.java.source.PositionRefProvider;
+import org.netbeans.modules.java.source.indexing.JavaCustomIndexer.CompileWorkerProvider;
+import org.netbeans.modules.java.source.indexing.JavaCustomIndexer.DefaultCompileWorkerProvider;
+import org.netbeans.modules.java.source.parsing.JavacParser;
+import org.netbeans.modules.java.source.parsing.JavacParser.ContextEnhancer;
+import org.netbeans.modules.java.source.parsing.JavacParser.VanillaJavacContextEnhancer;
+import org.netbeans.modules.java.source.parsing.ModuleOraculum;
 import org.netbeans.modules.java.source.tasklist.CompilerSettings;
 import org.netbeans.modules.openide.util.DefaultMutexImplementation;
 import org.netbeans.modules.openide.util.NbMutexEventProvider;
@@ -88,8 +95,10 @@ import org.netbeans.spi.editor.document.EditorMimeTypesImplementation;
 import org.netbeans.spi.editor.mimelookup.MimeDataProvider;
 import org.netbeans.spi.java.classpath.GlobalPathRegistryImplementation;
 import org.netbeans.spi.java.hints.Hint;
+import org.netbeans.spi.java.queries.CompilerOptionsQueryImplementation;
 import org.netbeans.spi.project.ProjectManagerImplementation;
 import org.openide.filesystems.MIMEResolver;
+import org.openide.filesystems.Repository;
 import org.openide.util.NbCollections;
 import org.openide.util.NbPreferences.Provider;
 import org.openide.util.spi.MutexEventProvider;
@@ -177,12 +186,12 @@ public abstract class CreateStandaloneJar extends NbTestCase {
             Class<?> clazz = Class.forName(fqn, false, this.getClass().getClassLoader());
 
             if (    clazz.getProtectionDomain().getCodeSource() == null
-                && !clazz.getName().startsWith("com.sun.source")
-                && !clazz.getName().startsWith("com.sun.javadoc")
-                && !clazz.getName().startsWith("com.sun.tools")
-                && !clazz.getName().startsWith("javax.tools")
-                && !clazz.getName().startsWith("javax.annotation.processing")
-                && !clazz.getName().startsWith("javax.lang.model")) {
+                || clazz.getName().startsWith("com.sun.source")
+                || clazz.getName().startsWith("com.sun.javadoc")
+                || clazz.getName().startsWith("com.sun.tools")
+                || clazz.getName().startsWith("javax.tools")
+                || clazz.getName().startsWith("javax.annotation.processing")
+                || clazz.getName().startsWith("javax.lang.model")) {
                 //probably platform class:
                 continue;
             }
@@ -279,6 +288,14 @@ public abstract class CreateStandaloneJar extends NbTestCase {
         registrations.add(new MetaInfRegistration(CompilerSettings.class.getName(), CompilerSettingsImpl.class.getName()));
         registrations.add(new MetaInfRegistration(MutexImplementation.class.getName(), DefaultMutexImplementation.class.getName()));
         registrations.add(new MetaInfRegistration(MutexEventProvider.class.getName(), NbMutexEventProvider.class.getName()));
+        registrations.add(new MetaInfRegistration(CompilerOptionsQueryImplementation.class.getName(), ModuleOraculum.class.getName()));
+        registrations.add(new MetaInfRegistration(URLStreamHandlerFactory.class.getName(), NBJRTURLStreamHandler.FactoryImpl.class.getName()));
+        registrations.add(new MetaInfRegistration(ContextEnhancer.class.getName(), JavacParser.VanillaJavacContextEnhancer.class.getName()));
+        registrations.add(new MetaInfRegistration(Repository.class.getName(), RepositoryImpl.class.getName()));
+        registrations.add(new MetaInfRegistration(RulesManager.class.getName(), RulesManagerImpl.class.getName()));
+        registrations.add(new MetaInfRegistration(EntityCatalog.class.getName(), EntityCatalogImpl.class.getName()));
+        registrations.add(new MetaInfRegistration(CompileWorkerProvider.class.getName(), DefaultCompileWorkerProvider.class.getName()));
+
         registrations.addAll(info.metaInf);
 
         Map<String, Collection<MetaInfRegistration>> api2Registrations = new HashMap<String, Collection<MetaInfRegistration>>();
@@ -496,7 +513,6 @@ public abstract class CreateStandaloneJar extends NbTestCase {
             "org.netbeans.core.NbLoaderPool",
             "org.netbeans.core.startup.preferences.PreferencesProviderImpl",
             "org.netbeans.modules.java.platform.DefaultJavaPlatformProvider",
-            IndexAccess.class.getName(),
             RulesManagerImpl.class.getName(),
             
             "com.sun.tools.javac.resources.compiler",
@@ -507,8 +523,6 @@ public abstract class CreateStandaloneJar extends NbTestCase {
 
 
             , "org.netbeans.modules.java.hints.legacy.spi.RulesManager$HintProviderImpl"
-            , Tree.class.getName()
-            ,JavacTool.class.getName()
             ,JavaMimeResolver.class.getName()
             , "org.netbeans.api.java.source.support.OpenedEditors",
             SharedMimeLookupCache.class.getName(),
@@ -520,7 +534,14 @@ public abstract class CreateStandaloneJar extends NbTestCase {
             NbMutexEventProvider.class.getName(),
             DefaultMutexImplementation.class.getName(),
             Utils.class.getName(),
-            IndexerControl.class.getName()
+            IndexerControl.class.getName(),
+            ModuleOraculum.class.getName(),
+            ToolPreferences.class.getName(),
+            NBJRTURLStreamHandler.FactoryImpl.class.getName(),
+            NBJRTURLMapper.class.getName(),
+            VanillaJavacContextEnhancer.class.getName(),
+            EntityCatalogImpl.class.getName(),
+            DefaultCompileWorkerProvider.class.getName()
         ));
 
     private static final Set<String> COPY_REGISTRATION = new HashSet<String>(Arrays.<String>asList(
@@ -529,7 +550,6 @@ public abstract class CreateStandaloneJar extends NbTestCase {
             "org.openide.util.Lookup",
             "org.netbeans.modules.openide.util.PreferencesProvider",
             ClassPathBasedHintProvider.class.getName(),
-            IndexAccess.class.getName(),
             RulesManager.class.getName(),
             MimeLookupCacheSPI.class.getName(),
             EnvironmentFactory.class.getName(),
@@ -539,21 +559,12 @@ public abstract class CreateStandaloneJar extends NbTestCase {
         ));
 
     private static final Set<String> RESOURCES = new HashSet<String>(Arrays.asList(
-        "com/sun/tools/javac/resources/javac_zh_CN.properties",
-        "com/sun/tools/javac/resources/compiler_ja.properties",
-        "com/sun/tools/javac/resources/compiler_zh_CN.properties",
-        "com/sun/tools/javac/resources/legacy.properties",
-        "com/sun/tools/javac/resources/compiler.properties",
-        "com/sun/tools/javac/resources/javac_ja.properties",
-        "com/sun/tools/javac/resources/javac.properties",
-        "com/sun/tools/javadoc/resources/javadoc.properties",
-        "com/sun/tools/javadoc/resources/javadoc_ja.properties",
-        "com/sun/tools/javadoc/resources/javadoc_zh_CN.properties",
         "org/netbeans/modules/java/source/resources/icons/error-badge.gif",
         "org/netbeans/modules/java/source/resources/layer.xml",
         "org/netbeans/modules/java/j2seproject/ui/resources/brokenProjectBadge.gif",
         "org/netbeans/modules/java/j2seproject/ui/resources/compileOnSaveDisabledBadge.gif",
-        "org/netbeans/modules/parsing/impl/resources/error-badge.gif"
+        "org/netbeans/modules/parsing/impl/resources/error-badge.gif",
+        "org/netbeans/modules/editor/tools/storage/ToolConfiguration-1_0.dtd"
     ));
 
 }

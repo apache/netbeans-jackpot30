@@ -28,8 +28,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
+import java.io.UncheckedIOException;
 import java.io.Writer;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,12 +50,15 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.prefs.AbstractPreferences;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import javax.lang.model.SourceVersion;
 import javax.swing.JCheckBox;
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
@@ -65,16 +73,18 @@ import org.netbeans.api.java.classpath.ClassPath;
 import org.netbeans.api.java.classpath.GlobalPathRegistry;
 import org.netbeans.api.java.source.CompilationController;
 import org.netbeans.api.java.source.ModificationResult;
-import org.netbeans.core.startup.MainLookup;
+import org.netbeans.modules.editor.tools.storage.api.ToolPreferences;
 import org.netbeans.modules.jackpot30.cmdline.lib.Utils;
-import org.netbeans.modules.jackpot30.ui.settings.XMLHintPreferences;
+//import org.netbeans.modules.jackpot30.ui.settings.XMLHintPreferences;
 import org.netbeans.modules.java.hints.declarative.DeclarativeHintRegistry;
 import org.netbeans.modules.java.hints.declarative.test.TestParser;
 import org.netbeans.modules.java.hints.declarative.test.TestParser.TestCase;
 import org.netbeans.modules.java.hints.declarative.test.TestPerformer;
+import org.netbeans.modules.java.hints.declarative.test.TestPerformer.TestClassPathProvider;
 import org.netbeans.modules.java.hints.jackpot.spi.PatternConvertor;
 import org.netbeans.modules.java.hints.providers.spi.HintDescription;
 import org.netbeans.modules.java.hints.providers.spi.HintMetadata;
+import org.netbeans.modules.java.hints.providers.spi.HintMetadata.Options;
 import org.netbeans.modules.java.hints.spiimpl.MessageImpl;
 import org.netbeans.modules.java.hints.spiimpl.RulesManager;
 import org.netbeans.modules.java.hints.spiimpl.batch.BatchSearch;
@@ -97,12 +107,15 @@ import org.netbeans.spi.editor.hints.ErrorDescriptionFactory;
 import org.netbeans.spi.editor.hints.Fix;
 import org.netbeans.spi.editor.hints.Severity;
 import org.netbeans.spi.java.classpath.ClassPathProvider;
+import org.netbeans.spi.java.classpath.PathResourceImplementation;
 import org.netbeans.spi.java.classpath.support.ClassPathSupport;
 import org.netbeans.spi.java.hints.Hint.Kind;
 import org.netbeans.spi.java.queries.SourceLevelQueryImplementation2;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileStateInvalidException;
 import org.openide.filesystems.FileUtil;
+import org.openide.filesystems.URLMapper;
+import org.openide.util.BaseUtilities;
 import org.openide.util.Exceptions;
 import org.openide.util.Lookup;
 import org.openide.util.Pair;
@@ -129,6 +142,12 @@ public class Main {
     }
 
     public static int compile(String... args) throws IOException, ClassNotFoundException {
+        try {
+            Class.forName("javax.lang.model.element.ModuleElement");
+        } catch (ClassNotFoundException ex) {
+            System.err.println("Error: no suitable javac found, please run on JDK 10+.");
+            return 1;
+        }
         System.setProperty("netbeans.user", "/tmp/tmp-foo");
 
         OptionParser parser = new OptionParser();
@@ -276,14 +295,16 @@ public class Main {
             boolean apply;
             boolean runDeclarative;
             boolean runDeclarativeTests;
+            boolean useDefaultEnabledSetting;
 
             if (parsed.has(configFile)) {
-                Preferences settingsFromConfigFile;
-                settingsFromConfigFile = XMLHintPreferences.from(parsed.valueOf(configFile));
-                hintSettingsPreferences = settingsFromConfigFile.node("settings");
-                apply = settingsFromConfigFile.getBoolean("apply", false);
-                runDeclarative = settingsFromConfigFile.getBoolean("runDeclarative", true);
-                runDeclarativeTests = settingsFromConfigFile.getBoolean("runDeclarativeTests", false);
+                ToolPreferences toolPrefs = ToolPreferences.from(parsed.valueOf(configFile).toURI());
+                hintSettingsPreferences = toolPrefs.getPreferences("hints", "text/x-java");
+                Preferences toolSettings = toolPrefs.getPreferences("standalone", "text/x-java");
+                apply = toolSettings.getBoolean("apply", false);
+                runDeclarative = toolSettings.getBoolean("runDeclarative", true);
+                runDeclarativeTests = toolSettings.getBoolean("runDeclarativeTests", false);
+                useDefaultEnabledSetting = true; //TODO: read from the configuration file?
                 if (parsed.has(hint)) {
                     System.err.println("cannot specify --hint and --config-file together");
                     return 1;
@@ -296,6 +317,7 @@ public class Main {
                 apply = false;
                 runDeclarative = true;
                 runDeclarativeTests = parsed.has(RUN_TESTS);
+                useDefaultEnabledSetting = false;
             }
 
             if (parsed.has(config) && !parsed.has(hint)) {
@@ -312,7 +334,7 @@ public class Main {
             GroupResult result = GroupResult.NOTHING_TO_DO;
 
             try (Writer outS = parsed.has(out) ? new BufferedWriter(new OutputStreamWriter(new FileOutputStream(parsed.valueOf(out)))) : null) {
-                GlobalConfiguration globalConfig = new GlobalConfiguration(hintSettingsPreferences, apply, runDeclarative, runDeclarativeTests, parsed.valueOf(hint), parsed.valueOf(hintFile), outS, parsed.has(OPTION_FAIL_ON_WARNINGS));
+                GlobalConfiguration globalConfig = new GlobalConfiguration(hintSettingsPreferences, apply, runDeclarative, runDeclarativeTests, useDefaultEnabledSetting, parsed.valueOf(hint), parsed.valueOf(hintFile), outS, parsed.has(OPTION_FAIL_ON_WARNINGS));
 
                 for (RootConfiguration groupConfig : groups) {
                     result = result.join(handleGroup(groupConfig, progress, globalConfig, parsed.valuesOf(config)));
@@ -401,7 +423,7 @@ public class Main {
 
         ProgressHandleWrapper progress = w.startNextPartWithEmbedding(1);
         Preferences settings = globalConfig.configurationPreferences != null ? globalConfig.configurationPreferences : new MemoryPreferences();
-        HintsSettings hintSettings = HintsSettings.createPreferencesBasedHintsSettings(settings, false, null);
+        HintsSettings hintSettings = HintsSettings.createPreferencesBasedHintsSettings(settings, globalConfig.useDefaultEnabledSetting, null);
 
         if (globalConfig.hint != null) {
             hints = findHints(rootConfiguration.sourceCP, rootConfiguration.binaryCP, globalConfig.hint, hintSettings);
@@ -504,29 +526,38 @@ public class Main {
             new SourceLevelQueryImpl(rootConfiguration.sourceCP, sourceLevel)
         };
 
-        try {
-            for (Object toRegister : register2Lookup) {
-                MainLookup.register(toRegister);
+        GroupResult[] result = new GroupResult[1];
+
+        Lookups.executeWith(new ProxyLookup(Lookups.fixed(register2Lookup), Lookup.getDefault()), () -> {
+            try {
+                Field implementations = ClassPath.class.getDeclaredField("implementations");
+                implementations.setAccessible(true);
+                AtomicReference r = (AtomicReference) implementations.get(null);
+                r.set(null);
+            } catch (Throwable t) {
+                throw new IllegalStateException(t);
             }
 
-            if (globalConfig.apply) {
-                apply(hints, rootConfiguration.rootFolders.toArray(new Folder[0]), progress, hintSettings, globalConfig.out);
+            try {
+                if (globalConfig.apply) {
+                    apply(hints, rootConfiguration.rootFolders.toArray(new Folder[0]), progress, hintSettings, globalConfig.out);
 
-                return GroupResult.SUCCESS; //TODO: WarningsAndErrors?
-            } else {
-                findOccurrences(hints, rootConfiguration.rootFolders.toArray(new Folder[0]), progress, hintSettings, wae);
-
-                if (wae.errors != 0 || (wae.warnings != 0 && globalConfig.failOnWarnings)) {
-                    return GroupResult.FAILURE;
+                    result[0] = GroupResult.SUCCESS; //TODO: WarningsAndErrors?
                 } else {
-                    return GroupResult.SUCCESS;
+                    findOccurrences(hints, rootConfiguration.rootFolders.toArray(new Folder[0]), progress, hintSettings, wae);
+
+                    if (wae.errors != 0 || (wae.warnings != 0 && globalConfig.failOnWarnings)) {
+                        result[0] = GroupResult.FAILURE;
+                    } else {
+                        result[0] = GroupResult.SUCCESS;
+                    }
                 }
+            } catch (IOException t) {
+                throw new UncheckedIOException(t);
             }
-        } finally {
-            for (Object toUnRegister : register2Lookup) {
-                MainLookup.unregister(toUnRegister);
-            }
-        }
+        });
+
+        return result[0];
     }
 
     private static class MemoryPreferences extends AbstractPreferences {
@@ -655,7 +686,8 @@ public class Main {
 
         for (Entry<HintMetadata, ? extends Collection<? extends HintDescription>> entry: all.entrySet()) {
             if (hardcoded.containsKey(entry.getKey())) {
-                if (toEnableIn.isEnabled(entry.getKey())) {
+                if (toEnableIn.isEnabled(entry.getKey()) && entry.getKey().kind == Kind.INSPECTION && !entry.getKey().options.contains(Options.NO_BATCH)) {
+                    System.err.println("enabled:" + entry.getKey().displayName);
                     descs.addAll(entry.getValue());
                 }
             } else {
@@ -684,6 +716,9 @@ public class Main {
         BatchSearch.getVerifiedSpans(occurrences, w, new VerifiedSpansCallBack() {
             @Override public void groupStarted() {}
             @Override public boolean spansVerified(CompilationController wc, Resource r, Collection<? extends ErrorDescription> hints) throws Exception {
+                hints = hints.stream()
+                             .sorted((ed1, ed2) -> ed1.getRange().getBegin().getOffset() - ed2.getRange().getBegin().getOffset())
+                             .collect(Collectors.toList());
                 for (ErrorDescription ed : hints) {
                     print(ed, wae, id2DisplayName);
                 }
@@ -735,7 +770,8 @@ public class Main {
 
         if (out != null) {
             for (ModificationResult mr : diffs) {
-                org.netbeans.modules.jackpot30.indexing.batch.BatchUtilities.exportDiff(mr, null, out);
+                //XXX:
+//                org.netbeans.modules.jackpot30.indexing.batch.BatchUtilities.exportDiff(mr, null, out);
             }
         } else {
             for (ModificationResult mr : diffs) {
@@ -756,35 +792,6 @@ public class Main {
         }
     }
 
-    private static ClassPath createDefaultBootClassPath() throws IOException {
-        try {
-            String cp = System.getProperty("sun.boot.class.path");
-            List<URL> urls = new ArrayList<URL>();
-            String[] paths = cp.split(Pattern.quote(System.getProperty("path.separator")));
-
-            for (String path : paths) {
-                File f = new File(path);
-
-                if (!f.canRead())
-                    continue;
-
-                FileObject fo = FileUtil.toFileObject(FileUtil.normalizeFile(f));
-
-                if (FileUtil.isArchiveFile(fo)) {
-                    fo = FileUtil.getArchiveRoot(fo);
-                }
-
-                if (fo != null) {
-                    urls.add(fo.getURL());
-                }
-            }
-
-            return ClassPathSupport.createClassPath(urls.toArray(new URL[0]));
-        } catch (FileStateInvalidException e) {
-            throw e;
-        }
-    }
-
     private static ClassPath createClassPath(Iterable<? extends File> roots, ClassPath def) {
         if (roots == null) return def;
 
@@ -798,37 +805,37 @@ public class Main {
     }
 
     private static void showGUICustomizer(File settingsFile, ClassPath binaryCP, ClassPath sourceCP) throws IOException, BackingStoreException {
-        GlobalPathRegistry.getDefault().register(ClassPath.COMPILE, new ClassPath[] {binaryCP});
-        GlobalPathRegistry.getDefault().register(ClassPath.SOURCE, new ClassPath[] {sourceCP});
-        ClassPathBasedHintWrapper hints = new ClassPathBasedHintWrapper();
-        final Preferences p = XMLHintPreferences.from(settingsFile);
-        JPanel hintPanel = new HintsPanel(p.node("settings"), hints, true);
-        final JCheckBox runDeclarativeHints = new JCheckBox("Always Run Declarative Rules");
-
-        runDeclarativeHints.setToolTipText("Always run the declarative rules found on classpath? (Only those selected above will be run when unchecked.)");
-        runDeclarativeHints.setSelected(p.getBoolean("runDeclarative", true));
-        runDeclarativeHints.addActionListener(new ActionListener() {
-            @Override public void actionPerformed(ActionEvent e) {
-                p.putBoolean("runDeclarative", runDeclarativeHints.isSelected());
-            }
-        });
-
-        JPanel customizer = new JPanel(new BorderLayout());
-
-        customizer.add(hintPanel, BorderLayout.CENTER);
-        customizer.add(runDeclarativeHints, BorderLayout.SOUTH);
-        JOptionPane jop = new JOptionPane(customizer, JOptionPane.PLAIN_MESSAGE);
-        JDialog dialog = jop.createDialog("Select Hints");
-
-        jop.selectInitialValue();
-        dialog.setVisible(true);
-        dialog.dispose();
-
-        Object result = jop.getValue();
-
-        if (result.equals(JOptionPane.OK_OPTION)) {
-            p.flush();
-        }
+//        GlobalPathRegistry.getDefault().register(ClassPath.COMPILE, new ClassPath[] {binaryCP});
+//        GlobalPathRegistry.getDefault().register(ClassPath.SOURCE, new ClassPath[] {sourceCP});
+//        ClassPathBasedHintWrapper hints = new ClassPathBasedHintWrapper();
+//        final Preferences p = XMLHintPreferences.from(settingsFile);
+//        JPanel hintPanel = new HintsPanel(p.node("settings"), hints, true);
+//        final JCheckBox runDeclarativeHints = new JCheckBox("Always Run Declarative Rules");
+//
+//        runDeclarativeHints.setToolTipText("Always run the declarative rules found on classpath? (Only those selected above will be run when unchecked.)");
+//        runDeclarativeHints.setSelected(p.getBoolean("runDeclarative", true));
+//        runDeclarativeHints.addActionListener(new ActionListener() {
+//            @Override public void actionPerformed(ActionEvent e) {
+//                p.putBoolean("runDeclarative", runDeclarativeHints.isSelected());
+//            }
+//        });
+//
+//        JPanel customizer = new JPanel(new BorderLayout());
+//
+//        customizer.add(hintPanel, BorderLayout.CENTER);
+//        customizer.add(runDeclarativeHints, BorderLayout.SOUTH);
+//        JOptionPane jop = new JOptionPane(customizer, JOptionPane.PLAIN_MESSAGE);
+//        JDialog dialog = jop.createDialog("Select Hints");
+//
+//        jop.selectInitialValue();
+//        dialog.setVisible(true);
+//        dialog.dispose();
+//
+//        Object result = jop.getValue();
+//
+//        if (result.equals(JOptionPane.OK_OPTION)) {
+//            p.flush();
+//        }
     }
 
     static String[] splitGroupArg(String arg) {
@@ -889,7 +896,7 @@ public class Main {
                 }
             }
 
-            this.bootCP = createClassPath(parsed.has(groupOptions.bootclasspath) ? parsed.valuesOf(groupOptions.bootclasspath) : null, createDefaultBootClassPath());
+            this.bootCP = createClassPath(parsed.has(groupOptions.bootclasspath) ? parsed.valuesOf(groupOptions.bootclasspath) : null, Utils.createDefaultBootClassPath());
             this.compileCP = createClassPath(parsed.has(groupOptions.classpath) ? parsed.valuesOf(groupOptions.classpath) : null, ClassPath.EMPTY);
             this.sourceCP = createClassPath(parsed.has(groupOptions.sourcepath) ? parsed.valuesOf(groupOptions.sourcepath) : null, ClassPathSupport.createClassPath(roots.toArray(new FileObject[0])));
             this.binaryCP = ClassPathSupport.createProxyClassPath(bootCP, compileCP);
@@ -903,16 +910,18 @@ public class Main {
         private final boolean apply;
         private final boolean runDeclarative;
         private final boolean runDeclarativeTests;
+        private final boolean useDefaultEnabledSetting;
         private final String hint;
         private final File hintFile;
         private final Writer out;
         private final boolean failOnWarnings;
 
-        public GlobalConfiguration(Preferences configurationPreferences, boolean apply, boolean runDeclarative, boolean runDeclarativeTests, String hint, File hintFile, Writer out, boolean failOnWarnings) {
+        public GlobalConfiguration(Preferences configurationPreferences, boolean apply, boolean runDeclarative, boolean runDeclarativeTests, boolean useDefaultEnabledSetting, String hint, File hintFile, Writer out, boolean failOnWarnings) {
             this.configurationPreferences = configurationPreferences;
             this.apply = apply;
             this.runDeclarative = runDeclarative;
             this.runDeclarativeTests = runDeclarativeTests;
+            this.useDefaultEnabledSetting = useDefaultEnabledSetting;
             this.hint = hint;
             this.hintFile = hintFile;
             this.out = out;
@@ -1067,4 +1076,27 @@ public class Main {
 
     }
 
+    @ServiceProvider(service=ClassPathProvider.class, position=9999/*DefaultClassPathProvider has 10000*/)
+    public static final class BCPFallBack implements ClassPathProvider {
+
+        @Override
+        public ClassPath findClassPath(FileObject file, String type) {
+            //hack, TestClassPathProvider does not have a reasonable position:
+            for (ClassPathProvider p : Lookup.getDefault().lookupAll(ClassPathProvider.class)) {
+                if (p instanceof TestClassPathProvider) {
+                    ClassPath cp = ((TestClassPathProvider) p).findClassPath(file, type);
+
+                    if (cp != null) {
+                        return cp;
+                    }
+                }
+            }
+
+            if (ClassPath.BOOT.equals(type)) {
+                return Utils.createDefaultBootClassPath();
+            }
+            return null;
+        }
+    
+    }
 }

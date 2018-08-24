@@ -22,7 +22,7 @@
 <project name="org.netbeans.modules.jackpot30.compiler" default="netbeans" basedir=".">
     <description>Builds, tests, and runs the project org.netbeans.modules.jackpot30.compiler.</description>
     <import file="nbproject/build-impl.xml"/>
-    <import file="${suite.dir}/../findbugs-import.xml"/>
+    <!--<import file="${suite.dir}/../findbugs-import.xml"/>-->
 
     <target name="create-cmdline-lib" depends="init">
         <mkdir dir="${build.classes.dir}/../lib" />

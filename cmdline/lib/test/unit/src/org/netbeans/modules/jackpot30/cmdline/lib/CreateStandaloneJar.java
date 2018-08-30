@@ -169,6 +169,10 @@ public abstract class CreateStandaloneJar extends NbTestCase {
                 continue;
             }
 
+            if (ALLOWED_DOMAINS.stream().noneMatch(fqn::startsWith)) {
+                continue;
+            }
+
             for (Pattern p : info.exclude) {
                 if (p.matcher(fqn).matches()) continue OUTER;
             }
@@ -180,19 +184,6 @@ public abstract class CreateStandaloneJar extends NbTestCase {
 
             if (url == null) {
                 //probably array:
-                continue;
-            }
-
-            Class<?> clazz = Class.forName(fqn, false, this.getClass().getClassLoader());
-
-            if (    clazz.getProtectionDomain().getCodeSource() == null
-                || clazz.getName().startsWith("com.sun.source")
-                || clazz.getName().startsWith("com.sun.javadoc")
-                || clazz.getName().startsWith("com.sun.tools")
-                || clazz.getName().startsWith("javax.tools")
-                || clazz.getName().startsWith("javax.annotation.processing")
-                || clazz.getName().startsWith("javax.lang.model")) {
-                //probably platform class:
                 continue;
             }
 
@@ -567,4 +558,10 @@ public abstract class CreateStandaloneJar extends NbTestCase {
         "org/netbeans/modules/editor/tools/storage/ToolConfiguration-1_0.dtd"
     ));
 
+    private static final Set<String> ALLOWED_DOMAINS = new HashSet<String>(Arrays.asList(
+            "org.netbeans.",
+            "org.openide.",
+            "org.apache.",
+            "joptsimple."
+    ));
 }

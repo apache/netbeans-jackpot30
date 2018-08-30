@@ -87,4 +87,10 @@
     nbproject/build-impl.xml file. 
 
     -->
+    <target name="-post-compile">
+        <mkdir dir="META-INF" />
+        <copy file="../../LICENSE" todir="${build.classes.dir}/META-INF" />
+        <copy file="../../NOTICE" todir="${build.classes.dir}/META-INF" />
+        <copy file="../../DISCLAIMER" todir="${build.classes.dir}/META-INF" />
+    </target>
 </project>

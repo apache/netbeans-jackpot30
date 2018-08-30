@@ -28,6 +28,9 @@ ant/nbproject/private/**
 lib/nbproject/private/**
 tool/nbproject/private/**
 
+#a notice file that will end up in the binary:
+tool/scripts/NOTICE-bin-tool.txt
+
 #manifests, typically trivial and problems with comments:
 */manifest.mf
 

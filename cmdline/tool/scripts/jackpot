@@ -18,4 +18,4 @@
 
 JACKPOT_JAR=`readlink -f "$0"`
 JACKPOT_JAR=`dirname "$JACKPOT_JAR"`/jackpot.jar
-java --add-exports jdk.javadoc/com.sun.tools.javadoc.main=ALL-UNNAMED -classpath `dirname "$JACKPOT_JAR"`/jackpot.jar org.netbeans.modules.jackpot30.cmdline.Main "$@"
+java -XX:+IgnoreUnrecognizedVMOptions --add-exports=jdk.javadoc/com.sun.tools.javadoc.main=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.desktop/sun.awt=ALL-UNNAMED -classpath `dirname "$JACKPOT_JAR"`/jackpot.jar org.netbeans.modules.jackpot30.cmdline.Main "$@"

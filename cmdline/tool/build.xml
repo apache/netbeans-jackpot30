@@ -24,35 +24,37 @@
     <import file="nbproject/build-impl.xml"/>
     <!--<import file="${suite.dir}/../findbugs-import.xml"/>-->
 
-    <target name="-check-joptsimple">
-        <condition property="has.joptsimple">
-            <available file="lib/jopt-simple-3.2.jar" />
-        </condition>
-    </target>
-
-    <target name="-download-joptsimple" depends="-check-joptsimple" unless="has.joptsimple">
-        <mkdir dir="lib" />
+    <target name="-download-joptsimple">
+        <mkdir dir="build" />
         <get src="http://central.maven.org/maven2/net/sf/jopt-simple/jopt-simple/3.2/jopt-simple-3.2.jar"
-             dest="lib/jopt-simple-3.2.jar" usetimestamp="true"/>
+             dest="build/jopt-simple-3.2.jar"
+             skipexisting="true"/>
     </target>
 
     <target name="build-init" depends="harness.build-init,-download-joptsimple" />
 
     <target name="create-standalone-tool" depends="init,netbeans">
         <mkdir dir="${build.classes.dir}/../jackpot" />
-        <copy todir="${build.classes.dir}/../jackpot">
-            <fileset dir="scripts"/>
-        </copy>
         <chmod dir="${build.classes.dir}/../jackpot" perm="ugo+x" includes="jackpot"/>
         <ant target="test" inheritall="false" inheritrefs="false">
             <property name="test.config.standalone.includes" value="org/netbeans/modules/jackpot30/cmdline/CreateTool.class"/>
             <property name="test.config" value="standalone"/>
             <property name="test-unit-sys-prop.outputDir" location="${build.classes.dir}/../jackpot" />
         </ant>
+        <jar update="true" destfile="${build.classes.dir}/../jackpot/jackpot.jar">
+            <zipfileset dir="scripts" includes="LICENSE-bin-tool.txt" fullpath="META-INF/LICENSE" />
+            <zipfileset dir="scripts" includes="NOTICE-bin-tool.txt" fullpath="META-INF/NOTICE" />
+            <zipfileset dir="../.." includes="DISCLAIMER" fullpath="META-INF/DISCLAIMER" />
+        </jar>
         <ant target="jar" inheritall="false" inheritrefs="false" dir="../ant">
             <property name="var.nbplatform.default.netbeans.dest.dir" location="${nbplatform.default.netbeans.dest.dir}" />
         </ant>
+        <copy file="scripts/jackpot" todir="${build.classes.dir}/../jackpot" />
         <copy file="../ant/dist/jackpot-ant.jar" todir="${build.classes.dir}/../jackpot"/>
+        <copy file="scripts/LICENSE-bin-tool.txt" tofile="${build.classes.dir}/../jackpot/LICENSE" />
+        <copy file="scripts/NOTICE-bin-tool.txt" tofile="${build.classes.dir}/../jackpot/NOTICE" />
+        <copy file="../../DISCLAIMER" tofile="${build.classes.dir}/../jackpot/DISCLAIMER" />
+        <copy file="../README.md" tofile="${build.classes.dir}/../jackpot/README.md" />
         <zip destfile="${build.classes.dir}/../jackpot.zip">
             <zipfileset file="${build.classes.dir}/../jackpot/jackpot" filemode="755" fullpath="jackpot/jackpot"/>
             <zipfileset dir="${build.classes.dir}/../jackpot" prefix="jackpot">

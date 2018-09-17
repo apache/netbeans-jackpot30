@@ -457,7 +457,7 @@ public class MainTest extends NbTestCase {
                       "1.6");
     }
 
-    public void testSourcePath() throws Exception {
+    public void DISABLEDtestSourcePath() throws Exception {
         String golden =
             "package test;\n" +
             "public class Test {\n" +

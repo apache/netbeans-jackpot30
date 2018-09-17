@@ -67,4 +67,48 @@
         </exec>
     </target>
 
+    <target name="rat">
+        <mkdir dir="build" />
+        <get src="https://search.maven.org/remotecontent?filepath=org/apache/rat/apache-rat/0.12/apache-rat-0.12.jar"
+             dest="build/apache-rat-0.12.jar"
+             skipexisting="true" />
+
+        <taskdef uri="antlib:org.apache.rat.anttasks" resource="org/apache/rat/anttasks/antlib.xml">
+            <classpath>
+                <pathelement location="build/apache-rat-0.12.jar"/>
+            </classpath>
+        </taskdef>
+
+        <fileset dir="${basedir}" id="rat.files">
+            <excludesfile name="rat-exclusions.txt" />
+        </fileset>
+
+        <rat:report xmlns:rat="antlib:org.apache.rat.anttasks" reportfile="build/rat-report.txt">
+            <rat:fullTextMatcher licenseFamilyCategory="AL" licenseFamilyName="Apache License 2.0 Short header">
+                Licensed to the Apache Software Foundation (ASF) under one or more contributor 
+                license agreements; and to You under the Apache License, Version 2.0.
+            </rat:fullTextMatcher>
+            <rat:approvedLicense familyName="Apache License 2.0 Short header"/>
+
+            <resources refid="rat.files" />
+        </rat:report>
+
+        <resourcecount property="rat.content.elements">
+            <fileset file="build/rat-report.txt">
+                <and>
+                    <contains text="Binaries: 0" />
+                    <contains text="Archives: 0" />
+                    <contains text="0 Unknown Licenses" />
+                </and>
+            </fileset>
+        </resourcecount>
+
+        <condition property="rat.failed">
+            <not>
+                <equals arg1="${rat.content.elements}" arg2="1" />
+            </not>
+        </condition>
+
+        <fail if="${rat.failed}">RAT failed.</fail>
+    </target>
 </project>

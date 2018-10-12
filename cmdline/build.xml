@@ -36,19 +36,23 @@
     <target name="build-source-dist">
         <mkdir dir="build" />
         <zip file="build/incubating-apache-netbeans-jackpot-${version}.zip">
-            <zipfileset dir="." />
-            <zipfileset dir=".." includes="DISCLAIMER" fullpath="DISCLAIMER"/>
-            <zipfileset dir=".." includes="LICENSE" fullpath="LICENSE"/>
-            <zipfileset dir=".." includes="NOTICE" fullpath="NOTICE"/>
+            <zipfileset dir="." excludes="**/build/" prefix="jackpot"/>
+            <zipfileset dir=".." includes="DISCLAIMER" fullpath="jackpot/DISCLAIMER"/>
+            <zipfileset dir=".." includes="LICENSE" fullpath="jackpot/LICENSE"/>
+            <zipfileset dir=".." includes="NOTICE" fullpath="jackpot/NOTICE"/>
         </zip>
     </target>
 
     <target name="build-and-test">
+        <condition property="jackpot.root" value="${basedir}" else="${basedir}/..">
+            <available file="${basedir}/LICENSE" />
+        </condition>
         <ant dir="${basedir}" inheritAll="false" inheritRefs="false">
             <property name="nbplatform.default.harness.dir" value="${NETBEANS_PLATFORM}/harness" />
             <property name="nbplatform.default.netbeans.dest.dir" value="${NETBEANS_PLATFORM}" />
             <property name="test.run.args" value="--add-exports=jdk.javadoc/com.sun.tools.javadoc.main=ALL-UNNAMED" />
             <property name="test.nbjdk.home" value="${JDK10}" />
+            <property name="jackpot.root" location="${jackpot.root}" />
             <target name="clean" />
             <target name="build" />
             <target name="test" />
@@ -59,6 +63,7 @@
             <property name="continue.after.failing.tests" value="false" />
             <property name="test.run.args" value="--add-exports=jdk.javadoc/com.sun.tools.javadoc.main=ALL-UNNAMED" />
             <property name="test.nbjdk.home" value="${JDK10}" />
+            <property name="jackpot.root" location="${jackpot.root}" />
         </ant>
         <property environment="env"/>
         <exec executable="build/test/scripted/run" dir="tool" failonerror="true">

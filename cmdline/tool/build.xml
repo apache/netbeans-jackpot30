@@ -44,7 +44,7 @@
         <jar update="true" destfile="${build.classes.dir}/../jackpot/jackpot.jar">
             <zipfileset dir="scripts" includes="LICENSE-bin-tool.txt" fullpath="META-INF/LICENSE" />
             <zipfileset dir="scripts" includes="NOTICE-bin-tool.txt" fullpath="META-INF/NOTICE" />
-            <zipfileset dir="../.." includes="DISCLAIMER" fullpath="META-INF/DISCLAIMER" />
+            <zipfileset dir="${jackpot.root}" includes="DISCLAIMER" fullpath="META-INF/DISCLAIMER" />
         </jar>
         <ant target="jar" inheritall="false" inheritrefs="false" dir="../ant">
             <property name="var.nbplatform.default.netbeans.dest.dir" location="${nbplatform.default.netbeans.dest.dir}" />
@@ -53,7 +53,7 @@
         <copy file="../ant/dist/jackpot-ant.jar" todir="${build.classes.dir}/../jackpot"/>
         <copy file="scripts/LICENSE-bin-tool.txt" tofile="${build.classes.dir}/../jackpot/LICENSE" />
         <copy file="scripts/NOTICE-bin-tool.txt" tofile="${build.classes.dir}/../jackpot/NOTICE" />
-        <copy file="../../DISCLAIMER" tofile="${build.classes.dir}/../jackpot/DISCLAIMER" />
+        <copy file="${jackpot.root}/DISCLAIMER" tofile="${build.classes.dir}/../jackpot/DISCLAIMER" />
         <copy file="../README.md" tofile="${build.classes.dir}/../jackpot/README.md" />
         <zip destfile="${build.classes.dir}/../jackpot.zip">
             <zipfileset file="${build.classes.dir}/../jackpot/jackpot" filemode="755" fullpath="jackpot/jackpot"/>

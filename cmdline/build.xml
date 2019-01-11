@@ -51,7 +51,7 @@
             <property name="nbplatform.default.harness.dir" value="${NETBEANS_PLATFORM}/harness" />
             <property name="nbplatform.default.netbeans.dest.dir" value="${NETBEANS_PLATFORM}" />
             <property name="test.run.args" value="--add-exports=jdk.javadoc/com.sun.tools.javadoc.main=ALL-UNNAMED" />
-            <property name="test.nbjdk.home" value="${JDK10}" />
+            <property name="test.nbjdk.home" value="${JDK11}" />
             <property name="jackpot.root" location="${jackpot.root}" />
             <target name="clean" />
             <target name="build" />
@@ -62,13 +62,13 @@
             <property name="nbplatform.default.netbeans.dest.dir" value="${NETBEANS_PLATFORM}" />
             <property name="continue.after.failing.tests" value="false" />
             <property name="test.run.args" value="--add-exports=jdk.javadoc/com.sun.tools.javadoc.main=ALL-UNNAMED" />
-            <property name="test.nbjdk.home" value="${JDK10}" />
+            <property name="test.nbjdk.home" value="${JDK11}" />
             <property name="jackpot.root" location="${jackpot.root}" />
         </ant>
         <property environment="env"/>
         <exec executable="build/test/scripted/run" dir="tool" failonerror="true">
-            <env key="JAVA_HOME" path="${JDK10}" />
-            <env key="PATH" path="${JDK10}/bin:${env.PATH}" />
+            <env key="JAVA_HOME" path="${JDK11}" />
+            <env key="PATH" path="${JDK11}/bin:${env.PATH}" />
         </exec>
     </target>
 

@@ -1,0 +1,3 @@
+#!/bin/sh
+LIB=`dirname $0`/../lib
+java --add-exports jdk.javadoc/com.sun.tools.javadoc.main=ALL-UNNAMED -classpath `find $LIB -name "*.jar" | tr '\n' ':'` org.netbeans.modules.jackpot.prs.handler.impl.HandlePullRequest "$@"

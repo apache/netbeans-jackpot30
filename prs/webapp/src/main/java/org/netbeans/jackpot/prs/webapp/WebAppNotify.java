@@ -57,7 +57,16 @@ public class WebAppNotify {
         if (!repositories.getBoolean(userAndRepo[1], false)) {
             return ;
         }
-        ProcessBuilder builder = new ProcessBuilder(System.getProperty("install.dir") + "/handler/bin/handler");
+        Preferences handlerPrefs = Config.getDefault().getPreferences().node("handler");
+        String handler = handlerPrefs.get("handler", "handler");
+        String remoteHost = handlerPrefs.get("remoteHost", null);
+        String remotePath = handlerPrefs.get("remotePath", null);
+        ProcessBuilder builder;
+        if (remoteHost != null && remotePath != null) {
+            builder = new ProcessBuilder(System.getProperty("install.dir") + "/handler/bin/handler.remote", remoteHost, remotePath, handler);
+        } else {
+            builder = new ProcessBuilder(System.getProperty("install.dir") + "/handler/bin/" + handler);
+        }
         builder.environment().put("PR_CONTENT", data);
         //XXX: how to handle the access tokens?
         builder.environment().put("OAUTH_TOKEN", Config.getDefault().getPreferences().node("users").node(userAndRepo[0]).get("access_token", ""));

@@ -29,7 +29,9 @@
             <path refid="test.unit.run.cp" />
         </copy>
         <copy todir="${handler.build.dir}/bin" file="script/handler" />
-        <chmod file="${handler.build.dir}/bin/handler" perm="u+x" />
+        <copy todir="${handler.build.dir}/bin" file="script/handler.docker" />
+        <copy todir="${handler.build.dir}/bin" file="script/handler.remote" />
+        <chmod file="${handler.build.dir}/bin/handler*" perm="u+x" />
         <delete file="${handler.build.dir}/lib/nb-javac-9-api.jar" />
         <delete file="${handler.build.dir}/lib/nb-javac-9-impl.jar" />
         <delete file="${handler.build.dir}/lib/org-netbeans-modules-java-source-nbjavac.jar" />

@@ -145,7 +145,7 @@ public class HandlePullRequest {
         GHPullRequest[] pr = new GHPullRequest[1];
         boolean[] hasWarnings = {false};
         for (Project project : projects) {
-            switch (project.getClass().getName()) {
+            switch (project.getClass().getName()) {//XXX: ensure that the environment variables are dropped here!
                 case "org.netbeans.modules.maven.NbMavenProjectImpl":
                     new ProcessBuilder("mvn", "dependency:go-offline").directory(FileUtil.toFile(project.getProjectDirectory())).inheritIO().start().waitFor();
                     break;
@@ -155,7 +155,7 @@ public class HandlePullRequest {
                         nbbuild = project.getProjectDirectory().getFileObject("../nbbuild");
                     }
                     if (nbbuild != null) {
-                        new ProcessBuilder("ant", "download-all-extbins").directory(FileUtil.toFile(nbbuild)).inheritIO().start().waitFor();
+                        new ProcessBuilder("ant", "-autoproxy", "download-all-extbins").directory(FileUtil.toFile(nbbuild)).inheritIO().start().waitFor();
                     }
                     //TODO: download extbins!
                     break;

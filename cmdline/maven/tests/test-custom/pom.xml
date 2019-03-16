@@ -42,9 +42,9 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>org.netbeans.modules.jackpot30</groupId>
+        <groupId>org.apache.netbeans.modules.jackpot30</groupId>
         <artifactId>jackpot30-maven-plugin</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>${jackpot.plugin.version}</version>
       </plugin>
     </plugins>
   </build>

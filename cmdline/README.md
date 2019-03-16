@@ -27,10 +27,11 @@ This tool allows to run NetBeans Java code checker without the NetBeans IDE. Thi
 
 #### To Build
 
-* NetBeans 10.0
+* Apache NetBeans 10.0
 * JDK 8 and JDK 11
 * bash
-* ant 1.9.9 or above
+* Apache ant 1.9.9 or above
+* Apache Maven 3.3.9 or above
 
 #### To Run
 

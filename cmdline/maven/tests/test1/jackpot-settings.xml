@@ -16,8 +16,14 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<hints>
-    <settings>
-        <org.netbeans.modules.java.hints.SyncOnNonFinal enabled="true"/>
-    </settings>
-</hints>
+<!DOCTYPE configuration PUBLIC "-//NetBeans//DTD Tool Configuration 1.0//EN" "http://www.netbeans.org/dtds/ToolConfiguration-1_0.dtd">
+<configuration>
+    <tool kind="hints" type="text/x-java">
+        <node name="org.netbeans.modules.java.hints.SyncOnNonFinal">
+            <attribute name="enabled" value="true"/>
+        </node>
+        <node name="org.netbeans.modules.java.hints.threading.Tiny.canBeFinal">
+            <attribute name="enabled" value="false"/>
+        </node>
+    </tool>
+</configuration>

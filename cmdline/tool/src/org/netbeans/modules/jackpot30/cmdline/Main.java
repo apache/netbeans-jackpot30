@@ -19,9 +19,6 @@
 
 package org.netbeans.modules.jackpot30.cmdline;
 
-import java.awt.BorderLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -30,11 +27,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.io.Writer;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,7 +43,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.prefs.AbstractPreferences;
@@ -58,11 +50,6 @@ import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.lang.model.SourceVersion;
-import javax.swing.JCheckBox;
-import javax.swing.JDialog;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeListener;
 import joptsimple.ArgumentAcceptingOptionSpec;
@@ -70,7 +57,6 @@ import joptsimple.OptionException;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.netbeans.api.java.classpath.ClassPath;
-import org.netbeans.api.java.classpath.GlobalPathRegistry;
 import org.netbeans.api.java.source.CompilationController;
 import org.netbeans.api.java.source.ModificationResult;
 import org.netbeans.modules.editor.tools.storage.api.ToolPreferences;
@@ -96,26 +82,20 @@ import org.netbeans.modules.java.hints.spiimpl.batch.BatchUtilities;
 import org.netbeans.modules.java.hints.spiimpl.batch.ProgressHandleWrapper;
 import org.netbeans.modules.java.hints.spiimpl.batch.ProgressHandleWrapper.ProgressHandleAbstraction;
 import org.netbeans.modules.java.hints.spiimpl.batch.Scopes;
-import org.netbeans.modules.java.hints.spiimpl.options.HintsPanel;
 import org.netbeans.modules.java.hints.spiimpl.options.HintsSettings;
-import org.netbeans.modules.java.hints.spiimpl.refactoring.Utilities.ClassPathBasedHintWrapper;
-import org.netbeans.modules.java.source.parsing.JavaPathRecognizer;
 import org.netbeans.modules.parsing.impl.indexing.CacheFolder;
 import org.netbeans.modules.parsing.impl.indexing.RepositoryUpdater;
+import org.netbeans.modules.refactoring.spi.RefactoringElementImplementation;
 import org.netbeans.spi.editor.hints.ErrorDescription;
 import org.netbeans.spi.editor.hints.ErrorDescriptionFactory;
 import org.netbeans.spi.editor.hints.Fix;
 import org.netbeans.spi.editor.hints.Severity;
 import org.netbeans.spi.java.classpath.ClassPathProvider;
-import org.netbeans.spi.java.classpath.PathResourceImplementation;
 import org.netbeans.spi.java.classpath.support.ClassPathSupport;
 import org.netbeans.spi.java.hints.Hint.Kind;
 import org.netbeans.spi.java.queries.SourceLevelQueryImplementation2;
 import org.openide.filesystems.FileObject;
-import org.openide.filesystems.FileStateInvalidException;
 import org.openide.filesystems.FileUtil;
-import org.openide.filesystems.URLMapper;
-import org.openide.util.BaseUtilities;
 import org.openide.util.Exceptions;
 import org.openide.util.Lookup;
 import org.openide.util.Pair;
@@ -145,10 +125,11 @@ public class Main {
         try {
             Class.forName("javax.lang.model.element.ModuleElement");
         } catch (ClassNotFoundException ex) {
-            System.err.println("Error: no suitable javac found, please run on JDK 10+.");
+            System.err.println("Error: no suitable javac found, please run on JDK 11+.");
             return 1;
         }
         System.setProperty("netbeans.user", "/tmp/tmp-foo");
+        System.setProperty("SourcePath.no.source.filter", "true");
 
         OptionParser parser = new OptionParser();
 //        ArgumentAcceptingOptionSpec<File> projects = parser.accepts("project", "project(s) to refactor").withRequiredArg().withValuesSeparatedBy(File.pathSeparatorChar).ofType(File.class);
@@ -520,44 +501,31 @@ public class Main {
             return GroupResult.NO_HINTS_FOUND;
         }
 
-        Object[] register2Lookup = new Object[] {
-            new ClassPathProviderImpl(rootConfiguration.bootCP, rootConfiguration.compileCP, rootConfiguration.sourceCP),
-            new JavaPathRecognizer(),
-            new SourceLevelQueryImpl(rootConfiguration.sourceCP, sourceLevel)
-        };
+        RootConfiguration prevConfig = currentRootConfiguration.get();
 
-        GroupResult[] result = new GroupResult[1];
-
-        Lookups.executeWith(new ProxyLookup(Lookups.fixed(register2Lookup), Lookup.getDefault()), () -> {
-            try {
-                Field implementations = ClassPath.class.getDeclaredField("implementations");
-                implementations.setAccessible(true);
-                AtomicReference r = (AtomicReference) implementations.get(null);
-                r.set(null);
-            } catch (Throwable t) {
-                throw new IllegalStateException(t);
-            }
+        try {
+            currentRootConfiguration.set(rootConfiguration);
 
             try {
                 if (globalConfig.apply) {
                     apply(hints, rootConfiguration.rootFolders.toArray(new Folder[0]), progress, hintSettings, globalConfig.out);
 
-                    result[0] = GroupResult.SUCCESS; //TODO: WarningsAndErrors?
+                    return GroupResult.SUCCESS; //TODO: WarningsAndErrors?
                 } else {
                     findOccurrences(hints, rootConfiguration.rootFolders.toArray(new Folder[0]), progress, hintSettings, wae);
 
                     if (wae.errors != 0 || (wae.warnings != 0 && globalConfig.failOnWarnings)) {
-                        result[0] = GroupResult.FAILURE;
+                        return GroupResult.FAILURE;
                     } else {
-                        result[0] = GroupResult.SUCCESS;
+                        return GroupResult.SUCCESS;
                     }
                 }
             } catch (IOException t) {
                 throw new UncheckedIOException(t);
             }
-        });
-
-        return result[0];
+        } finally {
+            currentRootConfiguration.set(prevConfig);
+        }
     }
 
     private static class MemoryPreferences extends AbstractPreferences {
@@ -687,7 +655,6 @@ public class Main {
         for (Entry<HintMetadata, ? extends Collection<? extends HintDescription>> entry: all.entrySet()) {
             if (hardcoded.containsKey(entry.getKey())) {
                 if (toEnableIn.isEnabled(entry.getKey()) && entry.getKey().kind == Kind.INSPECTION && !entry.getKey().options.contains(Options.NO_BATCH)) {
-                    System.err.println("enabled:" + entry.getKey().displayName);
                     descs.addAll(entry.getValue());
                 }
             } else {
@@ -728,7 +695,7 @@ public class Main {
             @Override public void cannotVerifySpan(Resource r) {
                 //TODO: ignored - what to do?
             }
-        }, problems, new AtomicBoolean());
+        }, true, problems, new AtomicBoolean());
     }
 
     private static void print(ErrorDescription error, WarningsAndErrors wae, Map<String, String> id2DisplayName) throws IOException {
@@ -766,7 +733,7 @@ public class Main {
         BatchResult occurrences = BatchSearch.findOccurrences(descs, Scopes.specifiedFoldersScope(sourceRoot), w, settings);
 
         List<MessageImpl> problems = new LinkedList<MessageImpl>();
-        Collection<ModificationResult> diffs = BatchUtilities.applyFixes(occurrences, w, new AtomicBoolean(), problems);
+        Collection<ModificationResult> diffs = BatchUtilities.applyFixes(occurrences, w, new AtomicBoolean(), new ArrayList<RefactoringElementImplementation>(), null, true, problems);
 
         if (out != null) {
             for (ModificationResult mr : diffs) {
@@ -938,26 +905,26 @@ public class Main {
         }
     }
 
-    public static final class ClassPathProviderImpl implements ClassPathProvider {
-        private final ClassPath boot;
-        private final ClassPath compile;
-        private final ClassPath source;
+    private static final ThreadLocal<RootConfiguration> currentRootConfiguration = new ThreadLocal<>();
 
-        public ClassPathProviderImpl(ClassPath boot, ClassPath compile, ClassPath source) {
-            this.boot = boot;
-            this.compile = compile;
-            this.source = source;
-        }
+    @ServiceProvider(service=ClassPathProvider.class, position=100)
+    public static final class ClassPathProviderImpl implements ClassPathProvider {
 
         @Override
         public ClassPath findClassPath(FileObject file, String type) {
-            if (source.findOwnerRoot(file) != null) {
+            RootConfiguration rootConfiguration = currentRootConfiguration.get();
+
+            if (rootConfiguration == null) {
+                return null;
+            }
+
+            if (rootConfiguration.sourceCP.findOwnerRoot(file) != null) {
                 if (ClassPath.BOOT.equals(type)) {
-                    return boot;
+                    return rootConfiguration.bootCP;
                 } else if (ClassPath.COMPILE.equals(type)) {
-                    return compile;
+                    return rootConfiguration.compileCP;
                 } else  if (ClassPath.SOURCE.equals(type)) {
-                    return source;
+                    return rootConfiguration.sourceCP;
                 }
             }
 
@@ -965,25 +932,25 @@ public class Main {
         }
     }
 
+    @ServiceProvider(service=SourceLevelQueryImplementation2.class, position=100)
     public static final class SourceLevelQueryImpl implements SourceLevelQueryImplementation2 {
-        private final ClassPath sourceCP;
-        private final Result sourceLevel;
-
-        public SourceLevelQueryImpl(ClassPath sourceCP, final String sourceLevel) {
-            this.sourceCP = sourceCP;
-            this.sourceLevel = new Result() {
-                @Override public String getSourceLevel() {
-                    return sourceLevel;
-                }
-                @Override public void addChangeListener(ChangeListener listener) {}
-                @Override public void removeChangeListener(ChangeListener listener) {}
-            };
-        }
 
         @Override
         public Result getSourceLevel(FileObject javaFile) {
-            if (sourceCP.findOwnerRoot(javaFile) != null) {
-                return sourceLevel;
+            RootConfiguration rootConfiguration = currentRootConfiguration.get();
+
+            if (rootConfiguration == null) {
+                return null;
+            }
+
+            if (rootConfiguration.sourceCP.findOwnerRoot(javaFile) != null) {
+                return new Result() {
+                    @Override public String getSourceLevel() {
+                        return rootConfiguration.sourceLevel;
+                    }
+                    @Override public void addChangeListener(ChangeListener listener) {}
+                    @Override public void removeChangeListener(ChangeListener listener) {}
+                };
             } else {
                 return null;
             }

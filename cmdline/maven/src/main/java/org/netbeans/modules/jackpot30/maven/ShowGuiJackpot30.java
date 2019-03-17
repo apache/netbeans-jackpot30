@@ -35,7 +35,7 @@ import org.netbeans.modules.jackpot30.cmdline.Main;
 public class ShowGuiJackpot30 extends AbstractMojo {
 
     /**
-     * @parameter expression="${project}"
+     * @parameter property="project"
      * @required
      * @readonly
      */

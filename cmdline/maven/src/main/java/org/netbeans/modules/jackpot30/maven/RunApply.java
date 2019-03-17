@@ -30,7 +30,7 @@ import org.apache.maven.project.MavenProject;
 public class RunApply extends RunJackpot30 {
 
     /**
-     * @parameter expression="${project}"
+     * @parameter property="project"
      * @required
      * @readonly
      */

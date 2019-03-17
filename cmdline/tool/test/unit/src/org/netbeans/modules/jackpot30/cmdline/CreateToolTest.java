@@ -188,8 +188,4 @@ public class CreateToolTest extends MainTest {
         };
     }
 
-    public void testSourcePath() throws Exception {
-        //the test is unstable in MainTest, but run it here:
-        DISABLEDtestSourcePath();
-    }
 }

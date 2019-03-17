@@ -47,7 +47,7 @@ public class Utils {
     }
 
     public static String getJackpotConfigurationFile(MavenProject project) {
-        Xpp3Dom configuration = getPluginConfiguration(project, "org.netbeans.modules.jackpot30", "jackpot30-maven-plugin");
+        Xpp3Dom configuration = getPluginConfiguration(project, "org.apache.netbeans.modules.jackpot30", "jackpot30-maven-plugin");
         
         if (configuration != null) {
             Xpp3Dom configurationFileElement = configuration.getChild("configurationFile");

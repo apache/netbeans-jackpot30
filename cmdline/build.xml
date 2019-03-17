@@ -44,6 +44,7 @@
     </target>
 
     <target name="build-and-test">
+        <property name="version" value="10.0" />
         <condition property="jackpot.root" value="${basedir}" else="${basedir}/..">
             <available file="${basedir}/LICENSE" />
         </condition>
@@ -70,6 +71,35 @@
             <env key="JAVA_HOME" path="${JDK11}" />
             <env key="PATH" path="${JDK11}/bin:${env.PATH}" />
         </exec>
+        <echo>Installing tool to the local maven repository:</echo>
+        <exec dir="." executable="mvn" failonerror="true">
+            <arg line="install:install-file -Dfile=tool/build/jackpot/jackpot.jar -DgroupId=org.apache.netbeans.modules.jackpot30 -DartifactId=tool -Dversion=${version} -Dpackaging=jar -DgeneratePom=true" />
+        </exec>
+        <echo>Building maven plugin:</echo>
+        <exec dir="maven" executable="mvn" failonerror="true">
+            <arg line="-Dversion=${version} install -DskipTests" />
+        </exec>
+        <echo>Run plugin tests:</echo>
+        <exec dir="maven" executable="mvn" failonerror="true">
+            <env key="JAVA_HOME" path="${JDK11}" />
+            <arg line="-Dmaven.executable=mvn -Djackpot.plugin.version=${version} test" />
+        </exec>
+        <property name="build.maven.repo" location="build/.m2" />
+        <mkdir dir="${build.maven.repo}" />
+        <echo>Installing tool to the target maven repository:</echo>
+        <exec dir="maven" executable="mvn" failonerror="true">
+            <arg line="deploy:deploy-file -Dfile=${basedir}/tool/build/jackpot/jackpot.jar -DgroupId=org.apache.netbeans.modules.jackpot30 -DartifactId=tool -Dversion=${version} -Dpackaging=jar -DgeneratePom=true -DaltDeploymentRepository=temp::default::file://${build.maven.repo} -Durl=file://${build.maven.repo}" />
+        </exec>
+        <echo>Installing plugin to the target maven repository:</echo>
+        <exec dir="maven" executable="mvn" failonerror="true">
+            <arg line="-DskipTests -DaltDeploymentRepository=temp::default::file://${build.maven.repo} deploy" />
+        </exec>
+        <zip destfile="build/.m2.zip">
+            <zipfileset dir="${build.maven.repo}/" />
+            <zipfileset dir="tool/scripts" includes="LICENSE-bin-tool.txt" fullpath="META-INF/LICENSE" />
+            <zipfileset dir="tool/scripts" includes="NOTICE-bin-tool.txt" fullpath="META-INF/NOTICE" />
+            <zipfileset dir="${jackpot.root}" includes="DISCLAIMER" fullpath="META-INF/DISCLAIMER" />
+        </zip>
     </target>
 
     <target name="rat">

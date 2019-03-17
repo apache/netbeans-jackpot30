@@ -21,8 +21,8 @@ before_script:
   - wget 'http://www.apache.org/dyn/closer.lua?action=download&filename=incubator/netbeans/incubating-netbeans/incubating-10.0/incubating-netbeans-10.0-bin.zip' -O /tmp/incubating-netbeans-10.0-bin.zip
   - (cd $HOME; unzip /tmp/incubating-netbeans-10.0-bin.zip)
   - unset _JAVA_OPTIONS
-  - wget https://archive.apache.org/dist/maven/maven-3/3.3.9/binaries/apache-maven-3.3.9-bin.zip
-  - (cd $HOME; unzip apache-maven-3.3.9-bin.zip)
+  - wget https://archive.apache.org/dist/maven/maven-3/3.3.9/binaries/apache-maven-3.3.9-bin.zip -O /tmp/apache-maven-3.3.9-bin.zip
+  - (cd $HOME; unzip /tmp/apache-maven-3.3.9-bin.zip)
 script:
   - export JDK11=$JAVA_HOME
   - export M2_HOME=$HOME/apache-maven-3.3.9

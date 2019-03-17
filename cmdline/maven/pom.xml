@@ -34,7 +34,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.executable>${env.M2_HOME}/bin/mvn</maven.executable>
+<!--    <maven.executable>${env.M2_HOME}/bin/mvn</maven.executable>-->
   </properties>
 
   <dependencies>
@@ -86,7 +86,7 @@
                       </property>
                       <property>
                           <name>maven.executable</name>
-                          <value>${maven.executable}</value>
+                          <value>${env.M2_HOME}/bin/mvn</value>
                       </property>
                   </systemProperties>
               </configuration>

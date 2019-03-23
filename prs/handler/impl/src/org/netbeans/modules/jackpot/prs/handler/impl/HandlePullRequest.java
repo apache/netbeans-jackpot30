@@ -24,7 +24,9 @@ import io.reflectoring.diffparser.api.model.Diff;
 import io.reflectoring.diffparser.api.model.Hunk;
 import io.reflectoring.diffparser.api.model.Line;
 import java.io.File;
+import java.io.InputStream;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -113,7 +115,16 @@ public class HandlePullRequest {
         Set<Project> projects = new HashSet<>();
         Map<FileObject, FileData> file2Remap = new HashMap<>();
         String diffURL = (String) pullRequest.get("diff_url");
-        List<Diff> diffs = new UnifiedDiffParser().parse(new URL(diffURL).openStream().readAllBytes());
+        URLConnection conn = new URL(diffURL).openConnection();
+        String text;
+        try (InputStream in = conn.getInputStream()) {
+            String encoding = conn.getContentEncoding();
+            if (encoding == null) encoding = "UTF-8";
+            //workaround for the diff parser, which does not handle git diffs properly:
+            text = new String(in.readAllBytes(), encoding)
+                    .replace("\ndiff --git", "\n\ndiff --git");
+        }
+        List<Diff> diffs = new UnifiedDiffParser().parse(text.getBytes());
         for (Diff diff : diffs) {
             String filename = diff.getToFileName().substring(2);
             if (filename.endsWith(".java")) {
@@ -124,7 +135,7 @@ public class HandlePullRequest {
                 }
                 Project project = FileOwnerQuery.getOwner(file);
                 if (project != null) {
-                    int[] remap = new int[file.asLines().size()]; //TODO: encoding?
+                    int[] remap = new int[file.asLines().size() + 1]; //TODO: encoding?
                     Arrays.fill(remap, -1);
                     int idx = 1;
                     for (Hunk hunk : diff.getHunks()) {
@@ -154,7 +165,7 @@ public class HandlePullRequest {
                     if (nbbuild == null) {
                         nbbuild = project.getProjectDirectory().getFileObject("../nbbuild");
                     }
-                    if (nbbuild != null) {
+                    if (nbbuild != null) { //TODO: only once
                         new ProcessBuilder("ant", "-autoproxy", "download-all-extbins").directory(FileUtil.toFile(nbbuild)).inheritIO().start().waitFor();
                     }
                     //TODO: download extbins!

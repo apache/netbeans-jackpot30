@@ -861,6 +861,33 @@ public class MainTest extends NbTestCase {
                       sourceLevel);
     }
 
+    public void testParameterFile() throws Exception {
+        String golden =
+            "package test;\n" +
+            "public class Test {\n" +
+            "    private void test(java.util.Collection c) {\n" +
+            "        boolean b = c.isEmpty();\n" +
+            "    }\n" +
+            "}\n";
+
+        doRunCompiler(golden,
+                      null,
+                      null,
+                      "src/test/Test.java",
+                      "package test;\n" +
+                      "public class Test {\n" +
+                      "    private void test(java.util.Collection c) {\n" +
+                      "        boolean b = c.size() == 0;\n" +
+                      "    }\n" +
+                      "}\n",
+                      "parameters.txt",
+                      "--apply\n" +
+                      "--hint\n" +
+                      "Usage of .size() == 0\n",
+                      null,
+                      "@" + getWorkDirPath() + "/parameters.txt");
+    }
+
     private static final String DONT_APPEND_PATH = new String("DONT_APPEND_PATH");
     private static final String IGNORE = new String("IGNORE");
 

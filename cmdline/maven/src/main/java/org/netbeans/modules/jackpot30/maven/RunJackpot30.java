@@ -20,6 +20,10 @@ package org.netbeans.modules.jackpot30.maven;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -80,10 +84,22 @@ public abstract class RunJackpot30 extends AbstractMojo {
                 return ;
             }
 
-            Main.compile(cmdLine.toArray(new String[0]));
+            Path bin = Paths.get(System.getProperty("java.home"))
+                            .resolve("bin");
+            Path launcher = bin.resolve("java");
+            if (!Files.exists(launcher)) {
+                launcher = bin.resolve("java.exe");
+            }
+            cmdLine.addAll(0, Arrays.asList(launcher.toAbsolutePath().toString(),
+                                            "-classpath", Main.class.getProtectionDomain().getCodeSource().getLocation().getPath(),
+                                            "--add-exports=jdk.javadoc/com.sun.tools.javadoc.main=ALL-UNNAMED",
+                                            "--add-opens=java.base/java.net=ALL-UNNAMED",
+                                            "--add-opens=java.desktop/sun.awt=ALL-UNNAMED",
+                                            Main.class.getCanonicalName()));
+            new ProcessBuilder(cmdLine).inheritIO().start().waitFor();
         } catch (IOException ex) {
             throw new MojoExecutionException(ex.getMessage(), ex);
-        } catch (ClassNotFoundException ex) {
+        } catch (InterruptedException ex) {
             throw new MojoExecutionException(ex.getMessage(), ex);
         } catch (DependencyResolutionRequiredException ex) {
             throw new MojoExecutionException(ex.getMessage(), ex);

@@ -457,7 +457,7 @@ public class MainTest extends NbTestCase {
                       "1.6");
     }
 
-    public void DISABLEDtestSourcePath() throws Exception {
+    public void testSourcePath() throws Exception {
         String golden =
             "package test;\n" +
             "public class Test {\n" +
@@ -827,6 +827,38 @@ public class MainTest extends NbTestCase {
     public void testGroupsParamEscape() throws Exception {
         assertEquals(Arrays.asList("a b", "a\\b"),
                      Arrays.asList(Main.splitGroupArg("a\\ b a\\\\b")));
+    }
+
+    public void testSourceLevelMatches1() throws Exception {
+        runSourceLevelMatches("1.8",
+                              "${workdir}/src/test/Test.java:4: warning: [Convert_to_Lambda_or_Member_Reference] This anonymous inner class creation can be turned into a lambda expression.\n" +
+                              "        Runnable r = new Runnable() { public void run() { } };\n" +
+                              "                         ^\n");
+    }
+
+    public void testSourceLevelMatches2() throws Exception {
+        runSourceLevelMatches("1.7",
+                              "");
+    }
+
+    private void runSourceLevelMatches(String sourceLevel, String expectedOutput) throws Exception {
+        String code = "package test;\n" +
+                      "public class Test {\n" +
+                      "    private void test(java.util.Collection c) {\n" +
+                      "        Runnable r = new Runnable() { public void run() { } };\n" +
+                      "    }\n" +
+                      "}\n";
+
+        doRunCompiler(code,
+                      expectedOutput,
+                      null,
+                      "src/test/Test.java",
+                      code,
+                      null,
+                      "--hint",
+                      "Convert to Lambda or Member Reference",
+                      "--source",
+                      sourceLevel);
     }
 
     private static final String DONT_APPEND_PATH = new String("DONT_APPEND_PATH");

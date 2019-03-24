@@ -93,7 +93,7 @@ import org.openide.util.Lookup;
  * @author lahvac
  */
 @SupportedAnnotationTypes("*")
-@SupportedOptions("hintsConfiguration")
+@SupportedOptions({"hintsConfiguration", "disableJackpotProcessor"})
 public class ProcessorImpl extends AbstractProcessor {
 
     public static final String CONFIGURATION_OPTION = "hintsConfiguration";
@@ -102,7 +102,8 @@ public class ProcessorImpl extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-
+        if ("true".equals(processingEnv.getOptions().get("disableJackpotProcessor")))
+            return false;
         if (!roundEnv.processingOver()) {
             Trees trees = Trees.instance(processingEnv);
             for (Element root : roundEnv.getRootElements()) {

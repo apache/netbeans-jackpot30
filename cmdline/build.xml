@@ -96,9 +96,9 @@
         </exec>
         <zip destfile="build/.m2.zip">
             <zipfileset dir="${build.maven.repo}/" />
-            <zipfileset dir="tool/scripts" includes="LICENSE-bin-tool.txt" fullpath="META-INF/LICENSE" />
-            <zipfileset dir="tool/scripts" includes="NOTICE-bin-tool.txt" fullpath="META-INF/NOTICE" />
-            <zipfileset dir="${jackpot.root}" includes="DISCLAIMER" fullpath="META-INF/DISCLAIMER" />
+            <zipfileset dir="tool/scripts" includes="LICENSE-bin-tool.txt" fullpath="LICENSE" />
+            <zipfileset dir="tool/scripts" includes="NOTICE-bin-tool.txt" fullpath="NOTICE" />
+            <zipfileset dir="${jackpot.root}" includes="DISCLAIMER" fullpath="DISCLAIMER" />
         </zip>
     </target>
 

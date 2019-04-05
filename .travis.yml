@@ -18,7 +18,7 @@ language: java
 jdk:
   - openjdk11
 before_script:
-  - wget 'http://www.apache.org/dyn/closer.lua?action=download&filename=incubator/netbeans/incubating-netbeans/incubating-10.0/incubating-netbeans-10.0-bin.zip' -O /tmp/incubating-netbeans-10.0-bin.zip
+  - wget 'http://www.apache.org/dyn/closer.lua?action=download&filename=incubator/netbeans/incubating-netbeans/incubating-11.0/incubating-netbeans-11.0-bin.zip' -O /tmp/incubating-netbeans-10.0-bin.zip
   - (cd $HOME; unzip /tmp/incubating-netbeans-10.0-bin.zip)
   - unset _JAVA_OPTIONS
 script:

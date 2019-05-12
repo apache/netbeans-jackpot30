@@ -148,7 +148,7 @@ public class Main {
         parser.accepts("help", "prints this help");
         parser.accepts(OPTION_NO_APPLY, "do not apply changes - only print locations were the hint would be applied");
         parser.accepts(OPTION_APPLY, "apply changes");
-        parser.accepts("show-gui", "show configuration dialog");
+//        parser.accepts("show-gui", "show configuration dialog");
         parser.accepts(OPTION_FAIL_ON_WARNINGS, "fail when warnings are detected");
         parser.accepts(RUN_TESTS, "run tests for declarative rules that were used");
 

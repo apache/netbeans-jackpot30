@@ -91,6 +91,5 @@
         <mkdir dir="META-INF" />
         <copy file="${jackpot.root}/LICENSE" todir="${build.classes.dir}/META-INF" />
         <copy file="${jackpot.root}/NOTICE" todir="${build.classes.dir}/META-INF" />
-        <copy file="${jackpot.root}/DISCLAIMER" todir="${build.classes.dir}/META-INF" />
     </target>
 </project>

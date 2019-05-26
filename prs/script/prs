@@ -1,0 +1,1 @@
+java -classpath `ls webapp/dependency/*.jar | tr '\n' ':'`:webapp/webapp-1.0-SNAPSHOT.jar -Dinstall.dir=`pwd` org.netbeans.jackpot.prs.webapp.WebApp $HOME/prs-config/

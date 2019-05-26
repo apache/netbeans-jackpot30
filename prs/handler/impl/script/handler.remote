@@ -1,0 +1,14 @@
+#!/bin/sh -x
+
+if [ "x$1" = "x" -o "x$2" = "x" -o "x$3" = "x" ]; then
+     echo "Incorrect parameters!"
+     exit 1;
+fi;
+
+rsync -av `dirname $0`/../ $1:$2/
+
+ssh -o "SendEnv=PR_CONTENT" -o "SendEnv=OAUTH_TOKEN" -o "SendEnv=OAUTH_APP_TOKEN" $1 /bin/bash <<EOF
+cd $2/bin;
+./$3
+EOF
+

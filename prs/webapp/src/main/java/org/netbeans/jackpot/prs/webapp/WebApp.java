@@ -27,6 +27,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Logger;
 import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.servlet.ServletContainer;
 
@@ -81,4 +82,6 @@ public class WebApp {
             System.out.println("Running on port: " + gws.getSelectorThread().getPortLowLevel());
         }
     }
+
+    public static final Logger LOG = Logger.getLogger(WebApp.class.getName());
 }

@@ -20,6 +20,7 @@
 package org.netbeans.jackpot.prs.webapp;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.prefs.Preferences;
 
 /**
@@ -43,4 +44,7 @@ public class Config {
         return Preferences.userRoot();
     }
     
+    public Path getRunDir() {
+        return Paths.get(getPreferences().node("app").get("run_dir", ""));
+    }
 }

@@ -21,11 +21,13 @@ package org.netbeans.jackpot.prs.webapp;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
 import java.util.Map;
-import java.util.Set;
+import java.util.logging.Level;
 import java.util.prefs.Preferences;
+import java.util.zip.GZIPOutputStream;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -71,7 +73,54 @@ public class WebAppNotify {
         //XXX: how to handle the access tokens?
         builder.environment().put("OAUTH_TOKEN", Config.getDefault().getPreferences().node("users").node(userAndRepo[0]).get("access_token", ""));
         builder.environment().put("OAUTH_APP_TOKEN", Config.getDefault().getPreferences().node("app").get("access_token", ""));
-        //TODO: logs!
-        builder.inheritIO().start();
+        java.nio.file.Path targetDir = Config.getDefault().getRunDir().resolve("github").resolve((String) repository.get("full_name"));
+        java.nio.file.Path thisRunDir = targetDir.resolve(String.valueOf((Integer) pullRequest.get("number")));
+        Files.createDirectories(thisRunDir);
+        Files.newOutputStream(thisRunDir.resolve("preparing")).close();
+        java.nio.file.Path stdout = thisRunDir.resolve("stdout");
+        builder.redirectOutput(stdout.toFile());
+        java.nio.file.Path stderr = thisRunDir.resolve("stderr");
+        builder.redirectError(stderr.toFile());
+        Process process = builder.start();
+        Files.newOutputStream(thisRunDir.resolve("running")).close();
+        Files.delete(thisRunDir.resolve("preparing"));
+        new Thread(() -> {
+            while (true) {
+                try {
+                    process.waitFor();
+                    break;
+                } catch (InterruptedException ex) {
+                    //ignore...
+                }
+            }
+            try {
+                Files.newOutputStream(thisRunDir.resolve("finished")).close();
+            } catch (IOException ex) {
+                WebApp.LOG.log(Level.SEVERE, null, ex);
+            }
+            try {
+                Files.delete(thisRunDir.resolve("running"));
+            } catch (IOException ex) {
+                WebApp.LOG.log(Level.SEVERE, null, ex);
+            }
+            pack(stdout);
+            pack(stderr);
+        }).start();
+    }
+
+    private static void pack(java.nio.file.Path log) {
+        java.nio.file.Path logGZ = log.getParent().resolve(log.getFileName() + ".gz");
+        try (InputStream in = Files.newInputStream(log);
+             OutputStream out = new GZIPOutputStream(Files.newOutputStream(logGZ))) {
+            int r;
+
+            while ((r = in.read()) != (-1)) {
+                out.write(r);
+            }
+
+            Files.delete(log);
+        } catch (IOException ex) {
+            WebApp.LOG.log(Level.SEVERE, null, ex);
+        }
     }
 }

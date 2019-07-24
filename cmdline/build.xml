@@ -21,6 +21,15 @@
 <!-- If you delete this file and reopen the project it will be recreated. -->
 <project name="cmdline" basedir=".">
     <description>Builds the module suite cmdline.</description>
+
+    <condition property="nbplatform.default.netbeans.dest.dir" value="${NETBEANS_PLATFORM}">
+        <isset property="NETBEANS_PLATFORM" />
+    </condition>
+
+    <condition property="nbplatform.default.harness.dir" value="${NETBEANS_PLATFORM}/harness">
+        <isset property="NETBEANS_PLATFORM" />
+    </condition>
+
     <import file="nbproject/build-impl.xml"/>
 <!--    <import file="../suite-common.xml"/>-->
 
@@ -43,14 +52,14 @@
     </target>
 
     <target name="build-and-test">
-        <property name="version" value="11.0" />
+        <property name="version" value="11.1" />
         <condition property="jackpot.root" value="${basedir}" else="${basedir}/..">
             <available file="${basedir}/LICENSE" />
         </condition>
         <ant dir="${basedir}" inheritAll="false" inheritRefs="false">
             <property name="nbplatform.default.harness.dir" value="${NETBEANS_PLATFORM}/harness" />
             <property name="nbplatform.default.netbeans.dest.dir" value="${NETBEANS_PLATFORM}" />
-            <property name="test.run.args" value="--add-exports=jdk.javadoc/com.sun.tools.javadoc.main=ALL-UNNAMED" />
+            <property name="test.run.args" value="--add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED" />
             <property name="test.nbjdk.home" value="${JDK11}" />
             <property name="jackpot.root" location="${jackpot.root}" />
             <target name="clean" />
@@ -61,7 +70,7 @@
             <property name="nbplatform.default.harness.dir" value="${NETBEANS_PLATFORM}/harness" />
             <property name="nbplatform.default.netbeans.dest.dir" value="${NETBEANS_PLATFORM}" />
             <property name="continue.after.failing.tests" value="false" />
-            <property name="test.run.args" value="--add-exports=jdk.javadoc/com.sun.tools.javadoc.main=ALL-UNNAMED" />
+            <property name="test.run.args" value="--add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED" />
             <property name="test.nbjdk.home" value="${JDK11}" />
             <property name="jackpot.root" location="${jackpot.root}" />
         </ant>

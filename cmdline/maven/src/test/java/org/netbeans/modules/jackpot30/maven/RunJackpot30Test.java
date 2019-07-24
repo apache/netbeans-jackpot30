@@ -67,7 +67,7 @@ public class RunJackpot30Test extends TestCase {
 
         Process p = Runtime.getRuntime().exec(new String[] {
             maven,
-            "-Djackpot.plugin.version=11.0",
+            "-Djackpot.plugin.version=11.1",
             "-q",
             "jackpot30:analyze"
         }, null, testDir);

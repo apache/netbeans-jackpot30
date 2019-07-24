@@ -92,7 +92,7 @@ public abstract class RunJackpot30 extends AbstractMojo {
             }
             cmdLine.addAll(0, Arrays.asList(launcher.toAbsolutePath().toString(),
                                             "-classpath", Main.class.getProtectionDomain().getCodeSource().getLocation().getPath(),
-                                            "--add-exports=jdk.javadoc/com.sun.tools.javadoc.main=ALL-UNNAMED",
+                                            "--add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED",
                                             "--add-opens=java.base/java.net=ALL-UNNAMED",
                                             "--add-opens=java.desktop/sun.awt=ALL-UNNAMED",
                                             Main.class.getCanonicalName()));

@@ -44,7 +44,7 @@
 
     <target name="build-source-dist">
         <mkdir dir="build" />
-        <zip file="build/incubating-apache-netbeans-jackpot-${version}.zip">
+        <zip file="build/apache-netbeans-jackpot-${version}.zip">
             <zipfileset dir="." excludes="**/build/" prefix="jackpot"/>
             <zipfileset dir=".." includes="LICENSE" fullpath="jackpot/LICENSE"/>
             <zipfileset dir=".." includes="NOTICE" fullpath="jackpot/NOTICE"/>
@@ -81,7 +81,7 @@
         </exec>
         <echo>Installing tool to the local maven repository:</echo>
         <exec dir="." executable="mvn" failonerror="true">
-            <arg line="install:install-file -Dfile=tool/build/jackpot/jackpot.jar -DgroupId=org.apache.netbeans.modules.jackpot30 -DartifactId=tool -Dversion=${version} -Dpackaging=jar -DgeneratePom=true" />
+            <arg line="install:install-file -Dfile=tool/build/jackpot/jackpot.jar -DgroupId=org.apache.netbeans.modules.jackpot30 -DartifactId=tool -Dversion=${version} -Dpackaging=jar -DpomFile=tool/scripts/pom.xml" />
         </exec>
         <echo>Building maven plugin:</echo>
         <exec dir="maven" executable="mvn" failonerror="true">
@@ -96,7 +96,7 @@
         <mkdir dir="${build.maven.repo}" />
         <echo>Installing tool to the target maven repository:</echo>
         <exec dir="maven" executable="mvn" failonerror="true">
-            <arg line="deploy:deploy-file -Dfile=${basedir}/tool/build/jackpot/jackpot.jar -DgroupId=org.apache.netbeans.modules.jackpot30 -DartifactId=tool -Dversion=${version} -Dpackaging=jar -DgeneratePom=true -DaltDeploymentRepository=temp::default::file://${build.maven.repo} -Durl=file://${build.maven.repo}" />
+            <arg line="deploy:deploy-file -Dfile=${basedir}/tool/build/jackpot/jackpot.jar -Djavadoc=${basedir}/tool/build/jackpot-javadoc.zip -Dsources=${basedir}/tool/build/jackpot-sources.zip -DgroupId=org.apache.netbeans.modules.jackpot30 -DartifactId=tool -Dversion=${version} -Dpackaging=jar -DgeneratePom=true -DaltDeploymentRepository=temp::default::file://${build.maven.repo} -Durl=file://${build.maven.repo}" />
         </exec>
         <echo>Installing plugin to the target maven repository:</echo>
         <exec dir="maven" executable="mvn" failonerror="true">

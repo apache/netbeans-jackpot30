@@ -81,7 +81,7 @@ public class WebAppEnableDisable {
                     config.put("url", NOTIFY_HOOK_URL);
                     config.put("content_type", "json");
                     config.put("content_type", "json");
-                    repository.createHook("Jackpot", config, EnumSet.of(GHEvent.PULL_REQUEST), true);
+                    repository.createHook("web", config, EnumSet.of(GHEvent.PULL_REQUEST), true);
                 }
             }
         } catch (IOException ex) {

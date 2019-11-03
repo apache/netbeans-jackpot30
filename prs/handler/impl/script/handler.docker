@@ -47,17 +47,15 @@ RUN apt update && \
 
 RUN useradd -m compute
 
-COPY . /home/compute/handler
-
-RUN chown -R compute /home/compute/handler
+COPY --chown=compute . /home/compute/handler
 
 USER compute
 
-ENTRYPOINT [ "/home/compute/handler/bin/handler", "-Dhttp.proxyHost=jackpot-proxy", "-Dhttp.proxyPort=3128", "-Dhttps.proxyHost=jackpot-proxy", "-Dhttps.proxyPort=3128"]
+ENTRYPOINT [ "/home/compute/handler/bin/handler.local", "-J-Dhttp.proxyHost=jackpot-proxy", "-J-Dhttp.proxyPort=3128", "-J-Dhttps.proxyHost=jackpot-proxy", "-J-Dhttps.proxyPort=3128", "-J-Xmx2048m"]
 EOF
 )
 
-docker run --rm --env PR_CONTENT --env OAUTH_TOKEN --env OAUTH_APP_TOKEN --network jackpot-network-$PROXY_CONTAINER --env "http_proxy=http://jackpot-proxy:3128/" --env "https_proxy=http://jackpot-proxy:3128/" --env "JACKPOT_PRS_EXTRA_JVM_OPTIONS=-Dhttp.proxyHost=jackpot-proxy -Dhttp.proxyPort=3128 -Dhttps.proxyHost=jackpot-proxy -Dhttps.proxyPort=3128" $WORKER
+docker run --rm --env PR_CONTENT --env OAUTH_TOKEN --env OAUTH_APP_TOKEN --network jackpot-network-$PROXY_CONTAINER --env "http_proxy=http://jackpot-proxy:3128/" --env "https_proxy=http://jackpot-proxy:3128/" --env "JACKPOT_PRS_EXTRA_JVM_OPTIONS=-J-Dhttp.proxyHost=jackpot-proxy -J-Dhttp.proxyPort=3128 -J-Dhttps.proxyHost=jackpot-proxy -J-Dhttps.proxyPort=3128" $WORKER
 
 docker container stop $PROXY_CONTAINER
 docker network rm jackpot-network-$PROXY_CONTAINER jackpot-public-network-$PROXY_CONTAINER

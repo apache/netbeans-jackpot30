@@ -19,8 +19,8 @@
 <project name="prs" default="build" basedir=".">
     <target name="build">
         <ant dir="handler" target="download-ext-bins" />
-        <ant dir="handler/impl" target="clean" />
-        <ant dir="handler/impl" target="build-prs-handler" />
+        <ant dir="handler" target="clean" />
+        <ant dir="handler" target="build-zip" />
         <exec executable="mvn" dir="webapp">
             <arg value="clean" />
         </exec>
@@ -32,8 +32,9 @@
         </exec>
         <delete dir="build/prs" />
         <mkdir dir="build/prs" />
-        <copy todir="build/prs/handler">
-             <fileset dir="handler/impl/build/handler"/>
+        <unzip dest="build/prs" src="handler/dist/handler.zip" />
+        <copy todir="build/prs/handler/bin">
+             <fileset dir="handler/impl/script"/>
         </copy>
         <copy todir="build/prs/webapp/dependency">
              <fileset dir="webapp/target/dependency"/>
@@ -45,6 +46,9 @@
              <fileset dir="script" includes="prs"/>
         </copy>
         <chmod file="build/prs/handler/bin/handler" perm="u+x" />
+        <chmod file="build/prs/handler/bin/handler.docker" perm="u+x" />
+        <chmod file="build/prs/handler/bin/handler.local" perm="u+x" />
+        <chmod file="build/prs/handler/bin/handler.remote" perm="u+x" />
         <chmod file="build/prs/prs" perm="u+x" />
     </target>
 </project>

@@ -76,6 +76,7 @@ public class WebAppNotify {
         java.nio.file.Path targetDir = Config.getDefault().getRunDir().resolve("github").resolve((String) repository.get("full_name"));
         java.nio.file.Path thisRunDir = targetDir.resolve(String.valueOf((Integer) pullRequest.get("number")));
         Files.createDirectories(thisRunDir);
+        Files.deleteIfExists(thisRunDir.resolve("finished"));
         Files.newOutputStream(thisRunDir.resolve("preparing")).close();
         java.nio.file.Path stdout = thisRunDir.resolve("stdout");
         builder.redirectOutput(stdout.toFile());

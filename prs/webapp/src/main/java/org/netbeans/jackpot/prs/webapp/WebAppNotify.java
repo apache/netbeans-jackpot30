@@ -58,7 +58,7 @@ public class WebAppNotify {
             return ;
         }
         Preferences handlerPrefs = Config.getDefault().getPreferences().node("handler");
-        String handler = handlerPrefs.get("handler", "handler");
+        String handler = handlerPrefs.get("handler", "handler.local");
         String remoteHost = handlerPrefs.get("remoteHost", null);
         String remotePath = handlerPrefs.get("remotePath", null);
         ProcessBuilder builder;

@@ -1,0 +1,2 @@
+#!/bin/sh
+`dirname $0`/handler --handle-pull-request --nosplash --nogui -J-Djava.awt.headless=true -J-Dnetbeans.logger.console=true "$@"

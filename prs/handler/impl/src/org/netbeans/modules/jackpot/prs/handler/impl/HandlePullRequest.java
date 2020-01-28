@@ -27,11 +27,9 @@ import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.EnumSet;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -39,55 +37,64 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.kohsuke.github.GHCommitState;
-import org.kohsuke.github.GHPullRequest;
-import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GitHub;
+import javax.swing.event.ChangeListener;
+import org.netbeans.api.java.platform.JavaPlatform;
+import org.netbeans.api.java.queries.BinaryForSourceQuery;
 import org.netbeans.api.java.source.ClasspathInfo;
 import org.netbeans.api.java.source.JavaSource;
+import org.netbeans.api.java.source.SourceUtils;
 import org.netbeans.api.project.FileOwnerQuery;
 import org.netbeans.api.project.Project;
-import org.netbeans.api.project.ProjectManager;
+import org.netbeans.api.project.ProjectUtils;
+import org.netbeans.api.project.Sources;
 import org.netbeans.api.project.ui.OpenProjects;
+import org.netbeans.api.sendopts.CommandException;
+import org.netbeans.modules.jackpot.prs.handler.impl.SiteWrapper.Factory;
 import org.netbeans.modules.java.hints.spiimpl.batch.BatchUtilities;
 import org.netbeans.modules.java.hints.spiimpl.hints.HintsInvoker;
 import org.netbeans.modules.java.hints.spiimpl.options.HintsSettings;
-import org.netbeans.modules.parsing.impl.indexing.implspi.CacheFolderProvider;
 import org.netbeans.spi.editor.hints.ErrorDescription;
+import org.netbeans.spi.java.queries.BinaryForSourceQueryImplementation;
+import org.netbeans.spi.sendopts.Env;
+import org.netbeans.spi.sendopts.Option;
+import org.netbeans.spi.sendopts.OptionProcessor;
+import org.openide.LifecycleManager;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
-import org.openide.modules.ModuleInfo;
 import org.openide.modules.Places;
-import org.openide.util.Lookup;
+import org.openide.util.Exceptions;
+import org.openide.util.lookup.ServiceProvider;
 
 /**
  *
  * @author lahvac
  */
-public class HandlePullRequest {
-    public static void main(String... args) throws Exception {
-        String content = System.getenv().get("PR_CONTENT");
-        String token = System.getenv().get("OAUTH_TOKEN");
-        String appToken = System.getenv().get("OAUTH_APP_TOKEN");
-        processPullRequest(content, token, appToken);
+@ServiceProvider(service=OptionProcessor.class)
+public class HandlePullRequest extends OptionProcessor {
+    
+    private static final Option HANDLE_PULL_REQUEST = Option.withoutArgument('\0', "handle-pull-request");
+    public static Factory factory = GHSite.FACTORY;
+
+    protected Set<Option> getOptions() {
+        return Collections.singleton(HANDLE_PULL_REQUEST);
+    }
+    
+    protected void process(Env env, Map<Option,String[]> optionValues) throws CommandException {
+        try {
+            String content = System.getenv().get("PR_CONTENT");
+            String token = System.getenv().get("OAUTH_TOKEN");
+            String appToken = System.getenv().get("OAUTH_APP_TOKEN");
+            processPullRequest(content, token, appToken);
+            LifecycleManager.getDefault().exit();
+        } catch (Throwable ex) {
+            System.err.println("error:");
+            ex.printStackTrace();
+            throw (CommandException) new CommandException(1).initCause(ex);
+        }
     }
 
     public static void processPullRequest(String inputData, String oauthToken, String oauthAppToken) throws Exception {
-        Path tempDir = Files.createTempDirectory("pull.requests");
-        File userdir = tempDir.resolve("scratch-user").toFile();
-        File cachedir = tempDir.resolve("scratch-cache").toFile();
-        System.setProperty("netbeans.user", userdir.getAbsolutePath());
-        File varLog = new File(new File(userdir, "var"), "log");
-        varLog.mkdirs();
-        System.setProperty("jdk.home", System.getProperty("java.home")); //for j2seplatform
-        Class<?> main = Class.forName("org.netbeans.core.startup.Main");
-        main.getDeclaredMethod("initializeURLFactory").invoke(null);
-        new File(cachedir, "index").mkdirs();
-//        DefaultCacheFolderProvider.getInstance().setCacheFolder(FileUtil.toFileObject(new File(cachedir, "index")));
-        CacheFolderProvider.getCacheFolderForRoot(Places.getUserDirectory().toURI().toURL(), EnumSet.noneOf(CacheFolderProvider.Kind.class), CacheFolderProvider.Mode.EXISTENT);
-
-        Lookup.getDefault().lookup(ModuleInfo.class);
-
+        File tempDir = Places.getCacheSubdirectory("checkout");
         Map<String, Object> inputParsed = new ObjectMapper().readValue(inputData, Map.class);
         Object action = inputParsed.get("action");
         if (!"opened".equals(action))
@@ -101,17 +108,26 @@ public class HandlePullRequest {
         Map<String, Object> head = (Map<String, Object>) pullRequest.get("head");
         Map<String, Object> headRepo = (Map<String, Object>) head.get("repo");
         
-        GitHub statusGithub = oauthToken != null ? GitHub.connectUsingOAuth(oauthToken) : GitHub.connect();
+        SiteWrapper statusGithub = factory.create(oauthToken);
         String fullRepoName = (String) baseRepo.get("full_name");
-        GHRepository statusTarget = statusGithub.getRepository(fullRepoName);
         String sha = (String) head.get("sha");
         
-        statusTarget.createCommitStatus(sha, GHCommitState.PENDING, null, "Running Jackpot verification");
+        statusGithub.createCommitStatusPending(fullRepoName, sha, "Running Jackpot verification");
 
         String cloneURL = (String) headRepo.get("clone_url");
-        new ProcessBuilder("git", "clone", cloneURL, "workdir").directory(tempDir.toFile()).inheritIO().start().waitFor();
-        FileObject workdir = FileUtil.toFileObject(tempDir.resolve("workdir").toFile());
+        new ProcessBuilder("git", "clone", cloneURL, "workdir").directory(tempDir).inheritIO().start().waitFor();
+        FileObject workdir = FileUtil.toFileObject(new File(tempDir, "workdir"));
         new ProcessBuilder("git", "checkout", sha).directory(FileUtil.toFile(workdir)).inheritIO().start().waitFor();
+        FileObject jlObject = workdir.getFileObject("src/java.base/share/classes/java/lang/Object.java");
+        if (jlObject != null) {
+            Project prj = FileOwnerQuery.getOwner(jlObject); //ensure external roots (tests) are registered
+            ProjectUtils.getSources(prj).getSourceGroups(Sources.TYPE_GENERIC); //register external roots
+        }
+        FileObject jlmSourceVersion = workdir.getFileObject("src/java.compiler/share/classes/javax/lang/model/SourceVersion.java");
+        if (jlmSourceVersion != null) {
+            Project prj = FileOwnerQuery.getOwner(jlmSourceVersion); //ensure external roots (tests) are registered
+            ProjectUtils.getSources(prj).getSourceGroups(Sources.TYPE_GENERIC); //register external roots
+        }
         Set<Project> projects = new HashSet<>();
         Map<FileObject, FileData> file2Remap = new HashMap<>();
         String diffURL = (String) pullRequest.get("diff_url");
@@ -149,11 +165,13 @@ public class HandlePullRequest {
                     }
                     projects.add(project);
                     file2Remap.put(file, new FileData(filename, remap));
+                } else {
+                    System.err.println("no project found for: " + filename);
                 }
             }
         }
         int prId = (int) pullRequest.get("number");
-        GHPullRequest[] pr = new GHPullRequest[1];
+        SiteWrapper[] commentGitHub = new SiteWrapper[1];
         boolean[] hasWarnings = {false};
         for (Project project : projects) {
             switch (project.getClass().getName()) {//XXX: ensure that the environment variables are dropped here!
@@ -170,6 +188,9 @@ public class HandlePullRequest {
                     }
                     //TODO: download extbins!
                     break;
+                case "org.netbeans.modules.java.openjdk.project.JDKProject":
+                    //no bootstrap at this time
+                    break;
                 default:
                     System.err.println("project name: " + project.getClass().getName());
                     break;
@@ -178,35 +199,41 @@ public class HandlePullRequest {
         OpenProjects.getDefault().open(projects.toArray(new Project[0]), false);
         Map<ClasspathInfo, Collection<FileObject>> sorted = BatchUtilities.sortFiles(file2Remap.keySet());
         for (Entry<ClasspathInfo, Collection<FileObject>> e : sorted.entrySet()) {
-            JavaSource.create(e.getKey(), e.getValue()).runWhenScanFinished(cc -> {
-                FileData fileData = file2Remap.get(cc.getFileObject());
+            System.err.println("Running hints for:");
+            System.err.println("files: " + e.getValue());
+            System.err.println("classpath: " + e.getKey());
+            try {
+                JavaSource.create(e.getKey(), e.getValue()).runWhenScanFinished(cc -> {
+                    FileData fileData = file2Remap.get(cc.getFileObject());
 
-                if (fileData == null)
-                    return ;
+                    if (fileData == null)
+                        return ;
 
-                cc.toPhase(JavaSource.Phase.RESOLVED); //XXX
+                    cc.toPhase(JavaSource.Phase.RESOLVED); //XXX
 
-                List<ErrorDescription> warnings = new HintsInvoker(HintsSettings.getGlobalSettings(), new AtomicBoolean()).computeHints(cc);
-                System.err.println("warnings=" + warnings);
-                for (ErrorDescription ed : warnings) {
-                    int startLine = ed.getRange().getBegin().getLine() + 1;
-                    int targetPosition = fileData.remap[startLine];
-                    if (targetPosition == (-1))
-                        continue;
-                    String comment = "Jackpot:\nwarning: " + ed.getDescription();
-                    //TODO: fixes
-//                    if (additions != null) {
-//                        comment += "```suggestion\n" + additions.toString() + "```";
-//                    }
-                    hasWarnings[0] = true;
-                    if (pr[0] == null) {
-                        GitHub commentGithub = oauthAppToken != null ? GitHub.connectUsingOAuth(oauthAppToken) : GitHub.connect();
-                        GHRepository commentTarget = commentGithub.getRepository(fullRepoName);
-                        pr[0] = commentTarget.getPullRequest(prId);
+                    List<ErrorDescription> warnings = new HintsInvoker(HintsSettings.getGlobalSettings(), new AtomicBoolean()).computeHints(cc);
+                    System.err.println("warnings=" + warnings);
+                    for (ErrorDescription ed : warnings) {
+                        int startLine = ed.getRange().getBegin().getLine() + 1;
+                        int targetPosition = fileData.remap[startLine];
+                        if (targetPosition == (-1))
+                            continue;
+                        String comment = "Jackpot:\nwarning: " + ed.getDescription();
+                        //TODO: fixes
+    //                    if (additions != null) {
+    //                        comment += "```suggestion\n" + additions.toString() + "```";
+    //                    }
+                        hasWarnings[0] = true;
+                        if (commentGitHub[0] == null) {
+                            commentGitHub[0] = factory.create(oauthAppToken);
+                        }
+                        commentGitHub[0].createReviewComment(fullRepoName, prId, comment, sha, fileData.filename, targetPosition);
                     }
-                    pr[0].createReviewComment(comment, sha, fileData.filename, targetPosition);
-                }
-            }, false).get();
+                }, false).get();
+            } catch (Throwable ex) {
+                System.err.println("error while processing: " + e.getValue());
+                Exceptions.printStackTrace(ex);
+            }
         }
 //                String file = (String) m.get("file");
 //                int startLine = (Integer) m.get("startLine");
@@ -249,7 +276,7 @@ public class HandlePullRequest {
         }
 
         //TODO: set status on crash/error!
-        statusTarget.createCommitStatus(sha, GHCommitState.SUCCESS, null, mainComment);
+        statusGithub.createCommitStatusSuccess(fullRepoName, sha, mainComment);
     }
     
     private static final class FileData {
@@ -263,4 +290,32 @@ public class HandlePullRequest {
         
     }
 
+    //if java.base/share/classes indexing fails, copy classfiles from the default JDK platform
+    //these will typically not match the sources, but if the classfiles would be missing
+    //altogether, all subsequent indexing would fail as well:
+    @ServiceProvider(service=BinaryForSourceQueryImplementation.class, position=0)
+    public static class BinaryForSourceQueryImpl implements BinaryForSourceQueryImplementation {
+
+        @Override
+        public BinaryForSourceQuery.Result findBinaryRoots(URL sourceRoot) {
+            if (sourceRoot.toString().contains("src/java.base/share/classes")) {
+                return new BinaryForSourceQuery.Result() {
+                    @Override
+                    public URL[] getRoots() {
+                        return JavaPlatform.getDefault().getBootstrapLibraries().entries().stream().map(e -> e.getURL()).filter(u -> "java.base".equals(SourceUtils.getModuleName(u))).toArray(s -> new URL[s]);
+                    }
+
+                    @Override
+                    public void addChangeListener(ChangeListener l) {
+                    }
+
+                    @Override
+                    public void removeChangeListener(ChangeListener l) {
+                    }
+                };
+            }
+            return null;
+        }
+        
+    }
 }

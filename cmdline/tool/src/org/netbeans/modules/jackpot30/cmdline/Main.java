@@ -19,9 +19,11 @@
 
 package org.netbeans.modules.jackpot30.cmdline;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
@@ -155,7 +157,7 @@ public class Main {
         OptionSet parsed;
 
         try {
-            parsed = parser.parse(args);
+            parsed = parser.parse(inlineParameterFiles(args));
         } catch (OptionException ex) {
             System.err.println(ex.getLocalizedMessage());
             parser.printHelpOn(System.out);
@@ -348,6 +350,28 @@ public class Main {
                 }
             }
         }
+    }
+
+    private static String[] inlineParameterFiles(String... args) {
+        List<String> inlinedArgs = new ArrayList<>();
+
+        for (String arg : args) {
+            if (arg.startsWith("@")) {
+                try (BufferedReader r = new BufferedReader(new FileReader(arg.substring(1)))) {
+                    String line;
+
+                    while ((line = r.readLine()) != null) {
+                        inlinedArgs.add(line);
+                    }
+                } catch (IOException ex) {
+                    throw new OptionException(Collections.emptySet(), ex) {};
+                }
+            } else {
+                inlinedArgs.add(arg);
+            }
+        }
+
+        return inlinedArgs.toArray(new String[0]);
     }
 
     private static Pair<ClassPath, ClassPath> jointSourceAndBinaryCP(List<RootConfiguration> groups) {

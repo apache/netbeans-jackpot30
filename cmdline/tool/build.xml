@@ -26,7 +26,7 @@
 
     <target name="-download-joptsimple">
         <mkdir dir="build" />
-        <get src="http://central.maven.org/maven2/net/sf/jopt-simple/jopt-simple/3.2/jopt-simple-3.2.jar"
+        <get src="https://repo1.maven.org/maven2/net/sf/jopt-simple/jopt-simple/3.2/jopt-simple-3.2.jar"
              dest="build/jopt-simple-3.2.jar"
              skipexisting="true"/>
     </target>
@@ -44,7 +44,6 @@
         <jar update="true" destfile="${build.classes.dir}/../jackpot/jackpot.jar">
             <zipfileset dir="scripts" includes="LICENSE-bin-tool.txt" fullpath="META-INF/LICENSE" />
             <zipfileset dir="scripts" includes="NOTICE-bin-tool.txt" fullpath="META-INF/NOTICE" />
-            <zipfileset dir="${jackpot.root}" includes="DISCLAIMER" fullpath="META-INF/DISCLAIMER" />
         </jar>
         <ant target="jar" inheritall="false" inheritrefs="false" dir="../ant">
             <property name="var.nbplatform.default.netbeans.dest.dir" location="${nbplatform.default.netbeans.dest.dir}" />
@@ -60,6 +59,17 @@
                 <exclude name="hints" />
                 <exclude name="jackpot" />
             </zipfileset>
+        </zip>
+        <zip destfile="${build.classes.dir}/../jackpot-sources.zip">
+            <zipfileset dir="src"/>
+            <zipfileset dir="${jackpot.root}" includes="LICENSE" fullpath="META-INF/LICENSE" />
+            <zipfileset dir="${jackpot.root}" includes="NOTICE" fullpath="META-INF/NOTICE" />
+        </zip>
+        <echo file="${build.classes.dir}/../README-javadoc.md">This jar does not have any API.</echo>
+        <zip destfile="${build.classes.dir}/../jackpot-javadoc.zip">
+            <zipfileset file="${build.classes.dir}/../README-javadoc.md"/>
+            <zipfileset dir="${jackpot.root}" includes="LICENSE" fullpath="META-INF/LICENSE" />
+            <zipfileset dir="${jackpot.root}" includes="NOTICE" fullpath="META-INF/NOTICE" />
         </zip>
     </target>
     

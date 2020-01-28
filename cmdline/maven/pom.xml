@@ -21,7 +21,7 @@
 
   <groupId>org.apache.netbeans.modules.jackpot30</groupId>
   <artifactId>jackpot30-maven-plugin</artifactId>
-  <version>11.0</version>
+  <version>11.1</version>
   <packaging>maven-plugin</packaging>
 
   <name>Jackpot 3.0 Command Line Tool Maven Bridge</name>
@@ -30,7 +30,13 @@
     <artifactId>netbeans-parent</artifactId>
     <version>2</version>
   </parent>
-  <url>https://bitbucket.org/jlahoda/jackpot30/overview</url>
+  <url>https://netbeans.apache.org</url>
+  <scm>
+      <connection>scm:git:https://gitbox.apache.org/repos/asf/netbeans-jackpot30.git</connection>
+      <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/netbeans-jackpot30.git</developerConnection>
+      <url>https://github.com/apache/netbeans-jackpot30/tree/${project.scm.tag}</url>
+      <tag>master</tag>
+  </scm>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

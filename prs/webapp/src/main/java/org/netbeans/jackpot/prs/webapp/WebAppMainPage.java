@@ -24,8 +24,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.prefs.Preferences;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -82,7 +80,7 @@ public class WebAppMainPage {
                     } else {
                         checked = "";
                     }
-                    page.append("<li><input type='checkbox' onclick='enableDisable(\"" + userLogin + "/" + e.getValue().getName() + "\")'" + checked + "/>"+ e.getValue().getName() + "</li>");
+                    page.append("<li><input type='checkbox' onclick='enableDisable(\"" + userLogin + "/" + e.getValue().getName() + "\")'" + checked + "/><a href=\"/github/repopullrequests?repositoryName=" + userLogin + "/" + e.getValue().getName() + "\">" + e.getValue().getName() + "</a></li>");
                 }
                 page.append("</ul>");
                 Set<String> admins = Set.of(Config.getDefault().getPreferences().node("app").get("admins", "").split(","));

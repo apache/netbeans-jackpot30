@@ -30,43 +30,43 @@
                  </antcall>
              </sequential>
         </macrodef>
-        <download url="http://central.maven.org/maven2/com/sun/jersey/jersey-client/1.0.1/jersey-client-1.0.1.jar" target="jersey-1.1/jersey-client-1.0.1.jar"/>
-        <download url="http://central.maven.org/maven2/com/sun/jersey/jersey-client/1.0.1/jersey-client-1.0.1-javadoc.jar" target="jersey-1.1/jersey-client-1.0.1-javadoc.jar"/>
-        <download url="http://central.maven.org/maven2/com/sun/jersey/jersey-client/1.0.1/jersey-client-1.0.1-sources.jar" target="jersey-1.1/jersey-client-1.0.1-sources.jar"/>
-        <download url="http://central.maven.org/maven2/com/sun/jersey/jersey-core/1.0.1/jersey-core-1.0.1.jar" target="jersey-1.1/jersey-core-1.0.1.jar"/>
-        <download url="http://central.maven.org/maven2/com/sun/jersey/jersey-core/1.0.1/jersey-core-1.0.1-javadoc.jar" target="jersey-1.1/jersey-core-1.0.1-javadoc.jar"/>
-        <download url="http://central.maven.org/maven2/com/sun/jersey/jersey-core/1.0.1/jersey-core-1.0.1-sources.jar" target="jersey-1.1/jersey-core-1.0.1-sources.jar"/>
-        <download url="http://central.maven.org/maven2/com/sun/jersey/jersey-server/1.0.1/jersey-server-1.0.1.jar" target="jersey-1.1/jersey-server-1.0.1.jar"/>
-        <download url="http://central.maven.org/maven2/com/sun/jersey/jersey-server/1.0.1/jersey-server-1.0.1-javadoc.jar" target="jersey-1.1/jersey-server-1.0.1-javadoc.jar"/>
-        <download url="http://central.maven.org/maven2/com/sun/jersey/jersey-server/1.0.1/jersey-server-1.0.1-sources.jar" target="jersey-1.1/jersey-server-1.0.1-sources.jar"/>
-        <download url="http://central.maven.org/maven2/com/sun/grizzly/grizzly-servlet-webserver/1.8.6.3/grizzly-servlet-webserver-1.8.6.3.jar" target="jersey-1.1/grizzly-servlet-webserver-1.8.6.3.jar"/>
-        <download url="http://central.maven.org/maven2/com/sun/grizzly/grizzly-servlet-webserver/1.9.14/grizzly-servlet-webserver-1.9.14-javadoc.jar" target="jersey-1.1/grizzly-servlet-webserver-1.9.14-javadoc.jar"/>
-        <download url="http://central.maven.org/maven2/com/sun/grizzly/grizzly-servlet-webserver/1.9.14/grizzly-servlet-webserver-1.9.14-sources.jar" target="jersey-1.1/grizzly-servlet-webserver-1.9.14-sources.jar"/>
-        <download url="http://central.maven.org/maven2/javax/ws/rs/jsr311-api/1.0/jsr311-api-1.0.jar" target="jersey-1.1/jsr311-api-1.0.jar"/>
-        <download url="http://central.maven.org/maven2/javax/ws/rs/jsr311-api/1.0/jsr311-api-1.0-javadoc.jar" target="jersey-1.1/jsr311-api-1.0-javadoc.jar"/>
-        <download url="http://central.maven.org/maven2/javax/ws/rs/jsr311-api/1.0/jsr311-api-1.0-sources.jar" target="jersey-1.1/jsr311-api-1.0-sources.jar"/>
+        <download url="https://repo1.maven.org/maven2/com/sun/jersey/jersey-client/1.0.1/jersey-client-1.0.1.jar" target="jersey-1.1/jersey-client-1.0.1.jar"/>
+        <download url="https://repo1.maven.org/maven2/com/sun/jersey/jersey-client/1.0.1/jersey-client-1.0.1-javadoc.jar" target="jersey-1.1/jersey-client-1.0.1-javadoc.jar"/>
+        <download url="https://repo1.maven.org/maven2/com/sun/jersey/jersey-client/1.0.1/jersey-client-1.0.1-sources.jar" target="jersey-1.1/jersey-client-1.0.1-sources.jar"/>
+        <download url="https://repo1.maven.org/maven2/com/sun/jersey/jersey-core/1.0.1/jersey-core-1.0.1.jar" target="jersey-1.1/jersey-core-1.0.1.jar"/>
+        <download url="https://repo1.maven.org/maven2/com/sun/jersey/jersey-core/1.0.1/jersey-core-1.0.1-javadoc.jar" target="jersey-1.1/jersey-core-1.0.1-javadoc.jar"/>
+        <download url="https://repo1.maven.org/maven2/com/sun/jersey/jersey-core/1.0.1/jersey-core-1.0.1-sources.jar" target="jersey-1.1/jersey-core-1.0.1-sources.jar"/>
+        <download url="https://repo1.maven.org/maven2/com/sun/jersey/jersey-server/1.0.1/jersey-server-1.0.1.jar" target="jersey-1.1/jersey-server-1.0.1.jar"/>
+        <download url="https://repo1.maven.org/maven2/com/sun/jersey/jersey-server/1.0.1/jersey-server-1.0.1-javadoc.jar" target="jersey-1.1/jersey-server-1.0.1-javadoc.jar"/>
+        <download url="https://repo1.maven.org/maven2/com/sun/jersey/jersey-server/1.0.1/jersey-server-1.0.1-sources.jar" target="jersey-1.1/jersey-server-1.0.1-sources.jar"/>
+        <download url="https://repo1.maven.org/maven2/com/sun/grizzly/grizzly-servlet-webserver/1.8.6.3/grizzly-servlet-webserver-1.8.6.3.jar" target="jersey-1.1/grizzly-servlet-webserver-1.8.6.3.jar"/>
+        <download url="https://repo1.maven.org/maven2/com/sun/grizzly/grizzly-servlet-webserver/1.9.14/grizzly-servlet-webserver-1.9.14-javadoc.jar" target="jersey-1.1/grizzly-servlet-webserver-1.9.14-javadoc.jar"/>
+        <download url="https://repo1.maven.org/maven2/com/sun/grizzly/grizzly-servlet-webserver/1.9.14/grizzly-servlet-webserver-1.9.14-sources.jar" target="jersey-1.1/grizzly-servlet-webserver-1.9.14-sources.jar"/>
+        <download url="https://repo1.maven.org/maven2/javax/ws/rs/jsr311-api/1.0/jsr311-api-1.0.jar" target="jersey-1.1/jsr311-api-1.0.jar"/>
+        <download url="https://repo1.maven.org/maven2/javax/ws/rs/jsr311-api/1.0/jsr311-api-1.0-javadoc.jar" target="jersey-1.1/jsr311-api-1.0-javadoc.jar"/>
+        <download url="https://repo1.maven.org/maven2/javax/ws/rs/jsr311-api/1.0/jsr311-api-1.0-sources.jar" target="jersey-1.1/jsr311-api-1.0-sources.jar"/>
         <download url="http://repo2.maven.org/maven2/asm/asm-all/3.1/asm-all-3.1.jar" target="jersey-1.1/asm-all-3.1.jar"/>
         <download url="http://repo2.maven.org/maven2/asm/asm-all/3.1/asm-all-3.1-sources.jar" target="jersey-1.1/asm-all-3.1-sources.jar"/>
 
-        <download url="http://repo1.maven.org/maven2/org/apache/lucene/lucene-core/3.5.0/lucene-core-3.5.0.jar" target="lucene-3.5.0/lucene-core-3.5.0.jar" />
-        <download url="http://repo1.maven.org/maven2/org/apache/lucene/lucene-core/3.5.0/lucene-core-3.5.0-javadoc.jar" target="lucene-3.5.0/lucene-core-3.5.0-javadoc.jar" />
-        <download url="http://repo1.maven.org/maven2/org/apache/lucene/lucene-core/3.5.0/lucene-core-3.5.0-sources.jar" target="lucene-3.5.0/lucene-core-3.5.0-sources.jar" />
+        <download url="https://repo1.maven.org/maven2/org/apache/lucene/lucene-core/3.5.0/lucene-core-3.5.0.jar" target="lucene-3.5.0/lucene-core-3.5.0.jar" />
+        <download url="https://repo1.maven.org/maven2/org/apache/lucene/lucene-core/3.5.0/lucene-core-3.5.0-javadoc.jar" target="lucene-3.5.0/lucene-core-3.5.0-javadoc.jar" />
+        <download url="https://repo1.maven.org/maven2/org/apache/lucene/lucene-core/3.5.0/lucene-core-3.5.0-sources.jar" target="lucene-3.5.0/lucene-core-3.5.0-sources.jar" />
 
-        <download url="http://repo1.maven.org/maven2/junit/junit/4.5/junit-4.5.jar" target="junit_4/junit-4.5.jar" />
+        <download url="https://repo1.maven.org/maven2/junit/junit/4.5/junit-4.5.jar" target="junit_4/junit-4.5.jar" />
 <!--        <download url="http://switch.dl.sourceforge.net/project/junit/junit/4.5/junit4.5.zip" target="junit_4/junit-4.5-api.zip" />-->
-        <download url="http://repo1.maven.org/maven2/junit/junit/4.5/junit-4.5-sources.jar" target="junit_4/junit-4.5-src.jar" />
+        <download url="https://repo1.maven.org/maven2/junit/junit/4.5/junit-4.5-sources.jar" target="junit_4/junit-4.5-src.jar" />
         
-        <download url="http://repo1.maven.org/maven2/junit/junit/3.8.2/junit-3.8.2.jar" target="junit/junit-3.8.2.jar" />
-        <download url="http://repo1.maven.org/maven2/junit/junit/3.8.2/junit-3.8.2-javadoc.jar" target="junit/junit-3.8.2-javadoc.jar" />
-        <download url="http://repo1.maven.org/maven2/junit/junit/3.8.2/junit-3.8.2-sources.jar" target="junit/junit-3.8.2-sources.jar" />
+        <download url="https://repo1.maven.org/maven2/junit/junit/3.8.2/junit-3.8.2.jar" target="junit/junit-3.8.2.jar" />
+        <download url="https://repo1.maven.org/maven2/junit/junit/3.8.2/junit-3.8.2-javadoc.jar" target="junit/junit-3.8.2-javadoc.jar" />
+        <download url="https://repo1.maven.org/maven2/junit/junit/3.8.2/junit-3.8.2-sources.jar" target="junit/junit-3.8.2-sources.jar" />
 
         <download url="http://lahoda.info/hudson/userContent/org-netbeans-modules-java-j2seproject-copylibstask.jar" target="CopyLibs/org-netbeans-modules-java-j2seproject-copylibstask.jar" />
         
-        <download url="http://central.maven.org/maven2/org/freemarker/freemarker/2.3.16/freemarker-2.3.16.jar" target="freemarker/freemarker-2.3.16.jar" />
+        <download url="https://repo1.maven.org/maven2/org/freemarker/freemarker/2.3.16/freemarker-2.3.16.jar" target="freemarker/freemarker-2.3.16.jar" />
 
-        <download url="http://central.maven.org/maven2/net/sf/jopt-simple/jopt-simple/3.2/jopt-simple-3.2.jar" target="jopt-simple/jopt-simple-3.2.jar" />
-        <download url="http://central.maven.org/maven2/net/sf/jopt-simple/jopt-simple/3.2/jopt-simple-3.2-sources.jar" target="jopt-simple/jopt-simple-3.2-sources.jar" />
-        <download url="http://central.maven.org/maven2/net/sf/jopt-simple/jopt-simple/3.2/jopt-simple-3.2-javadoc.jar" target="jopt-simple/jopt-simple-3.2-javadoc.jar" />
+        <download url="https://repo1.maven.org/maven2/net/sf/jopt-simple/jopt-simple/3.2/jopt-simple-3.2.jar" target="jopt-simple/jopt-simple-3.2.jar" />
+        <download url="https://repo1.maven.org/maven2/net/sf/jopt-simple/jopt-simple/3.2/jopt-simple-3.2-sources.jar" target="jopt-simple/jopt-simple-3.2-sources.jar" />
+        <download url="https://repo1.maven.org/maven2/net/sf/jopt-simple/jopt-simple/3.2/jopt-simple-3.2-javadoc.jar" target="jopt-simple/jopt-simple-3.2-javadoc.jar" />
     </target>
 
     <target name="-download-check-exists">

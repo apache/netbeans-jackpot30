@@ -22,13 +22,18 @@ package org.netbeans.modules.jackpot30.cmdline;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintStream;
+import java.io.Writer;
+import java.lang.annotation.RetentionPolicy;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -37,6 +42,8 @@ import javax.tools.SimpleJavaFileObject;
 import javax.tools.ToolProvider;
 import org.junit.runner.Result;
 import org.netbeans.junit.NbTestCase;
+import org.openide.filesystems.FileObject;
+import org.openide.filesystems.FileUtil;
 
 /**XXX: should also test error conditions
  *
@@ -915,6 +922,118 @@ public class MainTest extends NbTestCase {
                       "Usage of .size() == 0\n",
                       null,
                       "@" + getWorkDirPath() + "/parameters.txt");
+    }
+
+    public void testPatchWarnings() throws Exception {
+        String golden =
+            "package test;\n" +
+            "public class Test {\n" +
+            "    private void test(java.util.Collection c) {\n" +
+            "        boolean b = c.size() == 0;\n" +
+            "        boolean b2 = c.size() == 0;\n" +
+            "\n" +
+            "        boolean b3 = c.size() == 0;\n" +
+            "    }\n" +
+            "}\n";
+
+        doRunCompiler(golden,
+                      "${workdir}/src/test/Test.java:5: warning: [Usage_of_size_equals_0] Usage of .size() == 0 can be replaced with .isEmpty()\n" +
+                      "        boolean b2 = c.size() == 0;\n" +
+                      "                     ^\n" +
+                      "${workdir}/src/test/Test.java:7: warning: [Usage_of_size_equals_0] Usage of .size() == 0 can be replaced with .isEmpty()\n" +
+                      "        boolean b3 = c.size() == 0;\n" +
+                      "                     ^\n",
+                      null,
+                      "src/test/Test.java",
+                      golden,
+                      "patch.diff",
+                      "diff --git a/src/test/Test.java b/src/test/Test.java\n" +
+                      "index 100a838..cc6a6c0 100644\n" +
+                      "--- a/src/test/Test.java\n" +
+                      "+++ b/src/test/Test.java\n" +
+                      "@@ -2,6 +2,8 @@ package test;\n" +
+                      " public class Test {\n" +
+                      "     private void test(java.util.Collection c) {\n" +
+                      "         boolean b = c.size() == 0;\n" +
+                      "-        boolean b = c.size() == 0;\n" +
+                      "+        boolean b2 = c.size() == 0;\n" +
+                      "+\n" +
+                      "+        boolean b3 = c.size() == 0;\n" +
+                      "     }\n" +
+                      " }\n",
+                      null,
+                      "--source", "8",
+                      "--sourcepath", "${workdir}/src",
+                      "--hint", "Usage of .size() == 0",
+                      "--filter-patch", getWorkDirPath() + "/patch.diff");
+    }
+
+    public void testPatchApply() throws Exception {
+        String golden =
+            "package test;\n" +
+            "public class Test {\n" +
+            "    private void test(java.util.Collection c) {\n" +
+            "        boolean b = c.size() == 0;\n" +
+            "        boolean b2 = c.isEmpty();\n" +
+            "\n" +
+            "        boolean b3 = c.isEmpty();\n" +
+            "    }\n" +
+            "}\n";
+
+        doRunCompiler(golden,
+                      null,
+                      null,
+                      "src/test/Test.java",
+                      "package test;\n" +
+                      "public class Test {\n" +
+                      "    private void test(java.util.Collection c) {\n" +
+                      "        boolean b = c.size() == 0;\n" +
+                      "        boolean b2 = c.size() == 0;\n" +
+                      "\n" +
+                      "        boolean b3 = c.size() == 0;\n" +
+                      "    }\n" +
+                      "}\n",
+                      "patch.diff",
+                      "diff --git a/src/test/Test.java b/src/test/Test.java\n" +
+                      "index 100a838..cc6a6c0 100644\n" +
+                      "--- a/src/test/Test.java\n" +
+                      "+++ b/src/test/Test.java\n" +
+                      "@@ -2,6 +2,8 @@ package test;\n" +
+                      " public class Test {\n" +
+                      "     private void test(java.util.Collection c) {\n" +
+                      "         boolean b = c.size() == 0;\n" +
+                      "-        boolean b = c.size() == 0;\n" +
+                      "+        boolean b2 = c.size() == 0;\n" +
+                      "+\n" +
+                      "+        boolean b3 = c.size() == 0;\n" +
+                      "     }\n" +
+                      " }\n",
+                      null,
+                      "--apply",
+                      "--source", "8",
+                      "--sourcepath", "${workdir}/src",
+                      "--hint", "Usage of .size() == 0",
+                      "--filter-patch", getWorkDirPath() + "/patch.diff");
+    }
+
+    public void testLineNumber() throws Exception {
+        FileObject root = FileUtil.createMemoryFileSystem().getRoot();
+        FileObject test1 = root.createData("Test1.java");
+        try (OutputStream sout = test1.getOutputStream();
+             Writer out = new OutputStreamWriter(sout)) {
+            out.write("123456\n" +
+                      "1234567\r\n" +
+                      "12345");
+        }
+        assertEquals(1, Main.findLineForPos(new HashMap<FileObject, int[]>(), test1, 0));
+        assertEquals(1, Main.findLineForPos(new HashMap<FileObject, int[]>(), test1, 1));
+        assertEquals(1, Main.findLineForPos(new HashMap<FileObject, int[]>(), test1, 6));
+        assertEquals(2, Main.findLineForPos(new HashMap<FileObject, int[]>(), test1, 7));
+        assertEquals(2, Main.findLineForPos(new HashMap<FileObject, int[]>(), test1, 8));
+        assertEquals(2, Main.findLineForPos(new HashMap<FileObject, int[]>(), test1, 14));
+        assertEquals(3, Main.findLineForPos(new HashMap<FileObject, int[]>(), test1, 15));
+        assertEquals(3, Main.findLineForPos(new HashMap<FileObject, int[]>(), test1, 16));
+        assertEquals(3, Main.findLineForPos(new HashMap<FileObject, int[]>(), test1, 20));
     }
 
     private static final String DONT_APPEND_PATH = new String("DONT_APPEND_PATH");

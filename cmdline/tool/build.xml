@@ -31,7 +31,21 @@
              skipexisting="true"/>
     </target>
 
-    <target name="build-init" depends="harness.build-init,-download-joptsimple" />
+    <target name="-download-diffparser">
+        <mkdir dir="build" />
+        <get src="https://repo1.maven.org/maven2/io/reflectoring/diffparser/diffparser/1.4/diffparser-1.4.jar"
+             dest="build/diffparser-1.4.jar"
+             skipexisting="true"/>
+    </target>
+
+    <target name="-download-slf4j">
+        <mkdir dir="build" />
+        <get src="https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.25/slf4j-api-1.7.25.jar"
+             dest="build/slf4j-api-1.7.25.jar"
+             skipexisting="true"/>
+    </target>
+
+    <target name="build-init" depends="harness.build-init,-download-joptsimple,-download-diffparser,-download-slf4j" />
 
     <target name="create-standalone-tool" depends="init,netbeans">
         <mkdir dir="${build.classes.dir}/../jackpot" />

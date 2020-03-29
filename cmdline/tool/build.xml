@@ -43,6 +43,9 @@
         <get src="https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.25/slf4j-api-1.7.25.jar"
              dest="build/slf4j-api-1.7.25.jar"
              skipexisting="true"/>
+        <get src="https://repo1.maven.org/maven2/org/slf4j/slf4j-nop/1.7.25/slf4j-nop-1.7.25.jar"
+             dest="build/slf4j-nop-1.7.25.jar"
+             skipexisting="true"/>
     </target>
 
     <target name="build-init" depends="harness.build-init,-download-joptsimple,-download-diffparser,-download-slf4j" />

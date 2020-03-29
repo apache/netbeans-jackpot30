@@ -563,6 +563,8 @@ public abstract class CreateStandaloneJar extends NbTestCase {
             "org.openide.",
             "org.apache.",
             "net.bytebuddy.",
-            "joptsimple."
+            "joptsimple.",
+            "io.reflectoring.diffparser.",
+            "org.slf4j."
     ));
 }

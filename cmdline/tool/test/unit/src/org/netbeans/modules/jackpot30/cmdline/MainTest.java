@@ -943,7 +943,7 @@ public class MainTest extends NbTestCase {
                       "${workdir}/src/test/Test.java:7: warning: [Usage_of_size_equals_0] Usage of .size() == 0 can be replaced with .isEmpty()\n" +
                       "        boolean b3 = c.size() == 0;\n" +
                       "                     ^\n",
-                      null,
+                      "",
                       "src/test/Test.java",
                       golden,
                       "patch.diff",

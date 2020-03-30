@@ -22,5 +22,8 @@
         <node name="Javac_canUseLambda">
             <attribute name="enabled" value="true"/>
         </node>
+        <node name="org.netbeans.modules.java.hints.AddOverrideAnnotation">
+            <attribute name="enabled" value="false"/>
+        </node>
     </tool>
 </configuration>

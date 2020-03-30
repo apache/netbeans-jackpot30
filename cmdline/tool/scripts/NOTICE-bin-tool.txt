@@ -109,3 +109,5 @@ See http://jline.sourceforge.net/
 This product includes code (JaspellTernarySearchTrie) from Java Spelling Checking Package (jaspell): http://jaspell.sourceforge.net/
 License: The BSD License (http://www.opensource.org/licenses/bsd-license.php)
 
+This product includes diffparser:
+Copyright 2013-2017 Tom Hombergs (tom.hombergs@gmail.com | http://reflectoring.io)

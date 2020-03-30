@@ -19,6 +19,11 @@
 
 package org.netbeans.modules.jackpot30.cmdline;
 
+import io.reflectoring.diffparser.api.DiffParser;
+import io.reflectoring.diffparser.api.UnifiedDiffParser;
+import io.reflectoring.diffparser.api.model.Diff;
+import io.reflectoring.diffparser.api.model.Hunk;
+import io.reflectoring.diffparser.api.model.Line;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -29,6 +34,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.io.Writer;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -52,6 +58,7 @@ import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeListener;
 import joptsimple.ArgumentAcceptingOptionSpec;
@@ -71,6 +78,8 @@ import org.netbeans.modules.java.hints.declarative.test.TestPerformer;
 import org.netbeans.modules.java.hints.declarative.test.TestPerformer.TestClassPathProvider;
 import org.netbeans.modules.java.hints.jackpot.spi.PatternConvertor;
 import org.netbeans.modules.java.hints.providers.spi.HintDescription;
+import org.netbeans.modules.java.hints.providers.spi.HintDescription.Worker;
+import org.netbeans.modules.java.hints.providers.spi.HintDescriptionFactory;
 import org.netbeans.modules.java.hints.providers.spi.HintMetadata;
 import org.netbeans.modules.java.hints.providers.spi.HintMetadata.Options;
 import org.netbeans.modules.java.hints.spiimpl.MessageImpl;
@@ -78,6 +87,7 @@ import org.netbeans.modules.java.hints.spiimpl.RulesManager;
 import org.netbeans.modules.java.hints.spiimpl.batch.BatchSearch;
 import org.netbeans.modules.java.hints.spiimpl.batch.BatchSearch.BatchResult;
 import org.netbeans.modules.java.hints.spiimpl.batch.BatchSearch.Folder;
+import org.netbeans.modules.java.hints.spiimpl.batch.BatchSearch.IndexEnquirer;
 import org.netbeans.modules.java.hints.spiimpl.batch.BatchSearch.Resource;
 import org.netbeans.modules.java.hints.spiimpl.batch.BatchSearch.VerifiedSpansCallBack;
 import org.netbeans.modules.java.hints.spiimpl.batch.BatchUtilities;
@@ -95,9 +105,12 @@ import org.netbeans.spi.editor.hints.Severity;
 import org.netbeans.spi.java.classpath.ClassPathProvider;
 import org.netbeans.spi.java.classpath.support.ClassPathSupport;
 import org.netbeans.spi.java.hints.Hint.Kind;
+import org.netbeans.spi.java.hints.HintContext;
 import org.netbeans.spi.java.queries.SourceLevelQueryImplementation2;
+import org.openide.cookies.EditorCookie;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
+import org.openide.text.PositionRef;
 import org.openide.util.Exceptions;
 import org.openide.util.Lookup;
 import org.openide.util.Pair;
@@ -143,6 +156,7 @@ public class Main {
         ArgumentAcceptingOptionSpec<String> config = parser.accepts("config", "configurations").withRequiredArg().ofType(String.class);
         ArgumentAcceptingOptionSpec<File> hintFile = parser.accepts("hint-file", "file with rules that should be performed").withRequiredArg().ofType(File.class);
         ArgumentAcceptingOptionSpec<String> group = parser.accepts("group", "specify roots to process alongside with their classpath").withRequiredArg().ofType(String.class);
+        ArgumentAcceptingOptionSpec<File> patchFile = parser.accepts("filter-patch", "patch file, which will be used to filter the output").withRequiredArg().ofType(File.class);
 
         parser.accepts("list", "list all known hints");
         parser.accepts("progress", "show progress");
@@ -317,7 +331,7 @@ public class Main {
             GroupResult result = GroupResult.NOTHING_TO_DO;
 
             try (Writer outS = parsed.has(out) ? new BufferedWriter(new OutputStreamWriter(new FileOutputStream(parsed.valueOf(out)))) : null) {
-                GlobalConfiguration globalConfig = new GlobalConfiguration(hintSettingsPreferences, apply, runDeclarative, runDeclarativeTests, useDefaultEnabledSetting, parsed.valueOf(hint), parsed.valueOf(hintFile), outS, parsed.has(OPTION_FAIL_ON_WARNINGS));
+                GlobalConfiguration globalConfig = new GlobalConfiguration(hintSettingsPreferences, apply, runDeclarative, runDeclarativeTests, useDefaultEnabledSetting, parsed.valueOf(hint), parsed.valueOf(hintFile), parsed.valueOf(patchFile), outS, parsed.has(OPTION_FAIL_ON_WARNINGS));
 
                 for (RootConfiguration groupConfig : groups) {
                     result = result.join(handleGroup(groupConfig, progress, globalConfig, parsed.valuesOf(config)));
@@ -526,17 +540,36 @@ public class Main {
         }
 
         RootConfiguration prevConfig = currentRootConfiguration.get();
+        PatchDescription patch;
+
+        if (globalConfig.patchFile != null) {
+            patch = createPatchDescription(rootConfiguration, globalConfig.patchFile);
+
+            if (patch.file2AddedLines.isEmpty()) {
+                return GroupResult.SUCCESS;
+            }
+
+            hints = filterHints(hints, patch);
+        } else {
+            patch = null;
+        }
 
         try {
             currentRootConfiguration.set(rootConfiguration);
 
             try {
+                ProgressHandleWrapper nestedProgress = progress.startNextPartWithEmbedding(1, 1);
+                BatchSearch.Scope scope = Scopes.specifiedFoldersScope(rootConfiguration.rootFolders.toArray(new Folder[0]));
+                BatchResult occurrences = BatchSearch.findOccurrences(hints, scope, nestedProgress, hintSettings);
+
+                occurrences = filterBatchResult(occurrences, patch);
+
                 if (globalConfig.apply) {
-                    apply(hints, rootConfiguration.rootFolders.toArray(new Folder[0]), progress, hintSettings, globalConfig.out);
+                    apply(nestedProgress, occurrences, globalConfig.out);
 
                     return GroupResult.SUCCESS; //TODO: WarningsAndErrors?
                 } else {
-                    findOccurrences(hints, rootConfiguration.rootFolders.toArray(new Folder[0]), progress, hintSettings, wae);
+                    findOccurrences(nestedProgress, occurrences, hints, wae);
 
                     if (wae.errors != 0 || (wae.warnings != 0 && globalConfig.failOnWarnings)) {
                         return GroupResult.FAILURE;
@@ -549,6 +582,95 @@ public class Main {
             }
         } finally {
             currentRootConfiguration.set(prevConfig);
+        }
+    }
+
+    private static PatchDescription createPatchDescription(RootConfiguration rootConfiguration, File patchFile) throws IOException {
+        Map<FileObject, Set<Integer>> file2AddedLines = new HashMap<>();
+        DiffParser p = new UnifiedDiffParser();
+        List<Diff> diffs = p.parse(patchFile);
+
+        for (Diff diff : diffs) {
+            String fileName = diff.getToFileName();
+            FileObject resolvedTarget = null;
+            OUTER:
+            while (!fileName.isEmpty()) {
+                for (Folder f : rootConfiguration.rootFolders) {
+                    resolvedTarget = f.getFileObject().getFileObject(fileName);
+                    if (resolvedTarget != null) {
+                        break OUTER;
+                    }
+                }
+                int slash = fileName.indexOf("/");
+                if (slash == (-1)) break;
+                fileName = fileName.substring(slash + 1);
+            }
+            if (resolvedTarget == null) {
+                //TODO: warning?
+                continue;
+            }
+            Set<Integer> includedLines = new HashSet<>();
+            for (Hunk hunk : diff.getHunks()) {
+                int newLine = hunk.getToFileRange().getLineStart();
+                for (Line l : hunk.getLines()) {
+                    switch (l.getLineType()) {
+                        case FROM: break;
+                        case NEUTRAL: newLine++; break;
+                        case TO:
+                            includedLines.add(newLine);
+                            newLine++;
+                            break;
+                    }
+                }
+            }
+            file2AddedLines.put(resolvedTarget, includedLines);
+        }
+
+        return new PatchDescription(file2AddedLines);
+    }
+
+    private static Iterable<? extends HintDescription> filterHints(Iterable<? extends HintDescription> hints, PatchDescription patch) {
+        class FilteringWorker implements Worker {
+            private final PatchDescription patch;
+            private final Worker delegate;
+
+            public FilteringWorker(PatchDescription patch, Worker delegate) {
+                this.patch = patch;
+                this.delegate = delegate;
+            }
+
+            @Override
+            public Collection<? extends ErrorDescription> createErrors(HintContext ctx) {
+                Collection<? extends ErrorDescription> errors = delegate.createErrors(ctx);
+                return errors != null ? errors.stream().filter(ed -> patch.included(ed)).collect(Collectors.toList()) : null;
+            }
+
+        }
+
+        return StreamSupport.stream(hints.spliterator(), false)
+                            .map(hd -> HintDescriptionFactory.create()
+                                                             .setHintText(hd.getHintText())
+                                                             .setMetadata(hd.getMetadata())
+                                                             .setTrigger(hd.getTrigger())
+                                                             .setAdditionalConstraints(hd.getAdditionalConstraints())
+                                                             .setWorker(new FilteringWorker(patch, hd.getWorker()))
+                                                             .produce())
+                            .collect(Collectors.toList());
+    }
+
+    private static BatchResult filterBatchResult(BatchResult result, PatchDescription patch) {
+        try {
+            if (patch == null) return result;
+            Field f = result.getClass().getDeclaredField("projectId2Resources");
+            Map<? extends IndexEnquirer, ? extends Collection<? extends Resource>> projectId2Resources = (Map<? extends BatchSearch.IndexEnquirer, ? extends Collection<? extends Resource>>) f.get(result);
+            Map<IndexEnquirer, Collection<? extends Resource>> filteredProjectId2Resources = new HashMap<>();
+            for (Entry<? extends IndexEnquirer, ? extends Collection<? extends Resource>> e : projectId2Resources.entrySet()) {
+                filteredProjectId2Resources.put(e.getKey(), e.getValue().stream().filter(r -> patch.included(r.getResolvedFile())).collect(Collectors.toList()));
+            }
+            return new BatchResult(projectId2Resources, result.problems);
+        } catch (ReflectiveOperationException ex) {
+            Exceptions.printStackTrace(ex);
+            return result;
         }
     }
 
@@ -698,13 +820,11 @@ public class Main {
         System.setProperty("RepositoryUpdate.increasedLogLevel", "OFF");
     }
     
-    private static void findOccurrences(Iterable<? extends HintDescription> descs, Folder[] sourceRoot, ProgressHandleWrapper progress, HintsSettings settings, final WarningsAndErrors wae) throws IOException {
+    private static void findOccurrences(ProgressHandleWrapper progress, BatchResult rawOccurrences, Iterable<? extends HintDescription> descs, final WarningsAndErrors wae) throws IOException {
         final Map<String, String> id2DisplayName = Utils.computeId2DisplayName(descs);
-        ProgressHandleWrapper w = progress.startNextPartWithEmbedding(1, 1);
-        BatchResult occurrences = BatchSearch.findOccurrences(descs, Scopes.specifiedFoldersScope(sourceRoot), w, settings);
 
         List<MessageImpl> problems = new LinkedList<MessageImpl>();
-        BatchSearch.getVerifiedSpans(occurrences, w, new VerifiedSpansCallBack() {
+        BatchSearch.getVerifiedSpans(rawOccurrences, progress, new VerifiedSpansCallBack() {
             @Override public void groupStarted() {}
             @Override public boolean spansVerified(CompilationController wc, Resource r, Collection<? extends ErrorDescription> hints) throws Exception {
                 hints = hints.stream()
@@ -752,12 +872,9 @@ public class Main {
         System.out.println(b);
     }
 
-    private static void apply(Iterable<? extends HintDescription> descs, Folder[] sourceRoot, ProgressHandleWrapper progress, HintsSettings settings, Writer out) throws IOException {
-        ProgressHandleWrapper w = progress.startNextPartWithEmbedding(1, 1);
-        BatchResult occurrences = BatchSearch.findOccurrences(descs, Scopes.specifiedFoldersScope(sourceRoot), w, settings);
-
+    private static void apply(ProgressHandleWrapper progress, BatchResult rawOccurrences, Writer out) throws IOException {
         List<MessageImpl> problems = new LinkedList<MessageImpl>();
-        Collection<ModificationResult> diffs = BatchUtilities.applyFixes(occurrences, w, new AtomicBoolean(), new ArrayList<RefactoringElementImplementation>(), null, true, problems);
+        Collection<ModificationResult> diffs = BatchUtilities.applyFixes(rawOccurrences, progress, new AtomicBoolean(), new ArrayList<RefactoringElementImplementation>(), null, true, problems);
 
         if (out != null) {
             for (ModificationResult mr : diffs) {
@@ -904,10 +1021,11 @@ public class Main {
         private final boolean useDefaultEnabledSetting;
         private final String hint;
         private final File hintFile;
+        private final File patchFile;
         private final Writer out;
         private final boolean failOnWarnings;
 
-        public GlobalConfiguration(Preferences configurationPreferences, boolean apply, boolean runDeclarative, boolean runDeclarativeTests, boolean useDefaultEnabledSetting, String hint, File hintFile, Writer out, boolean failOnWarnings) {
+        public GlobalConfiguration(Preferences configurationPreferences, boolean apply, boolean runDeclarative, boolean runDeclarativeTests, boolean useDefaultEnabledSetting, String hint, File hintFile, File patchFile, Writer out, boolean failOnWarnings) {
             this.configurationPreferences = configurationPreferences;
             this.apply = apply;
             this.runDeclarative = runDeclarative;
@@ -915,6 +1033,7 @@ public class Main {
             this.useDefaultEnabledSetting = useDefaultEnabledSetting;
             this.hint = hint;
             this.hintFile = hintFile;
+            this.patchFile = patchFile;
             this.out = out;
             this.failOnWarnings = failOnWarnings;
         }
@@ -1089,5 +1208,64 @@ public class Main {
             return null;
         }
     
+    }
+
+    private static class PatchDescription {
+        private final Map<FileObject, Set<Integer>> file2AddedLines;
+        private final Map<FileObject, int[]> file2LineStarts = new HashMap<>();
+
+        private PatchDescription(Map<FileObject, Set<Integer>> file2AddedLines) {
+            this.file2AddedLines = file2AddedLines;
+        }
+
+        public boolean included(FileObject file) {
+            return file2AddedLines.containsKey(file);
+        }
+
+        public boolean included(ErrorDescription error) {
+            int startLine = findLineForPos(file2LineStarts, error.getFile(), error.getRange().getBegin());
+            int endLine = findLineForPos(file2LineStarts, error.getFile(), error.getRange().getBegin());
+            Set<Integer> addedLines = file2AddedLines.get(error.getFile());
+
+            if (addedLines == null) {
+                return false;
+            }
+
+            for (int line = startLine; line <= endLine; line++) {
+                if (addedLines.contains(line)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+    }
+
+    private static int findLineForPos(Map<FileObject, int[]> file2LineStartsCache, FileObject file, PositionRef pos) {
+        return findLineForPos(file2LineStartsCache, file, pos.getOffset());
+    }
+
+    static int findLineForPos(Map<FileObject, int[]> file2LineStartsCache, FileObject file, int offset) {
+        int[] lineStarts = file2LineStartsCache.computeIfAbsent(file, x -> lineStarts(file));
+        int line = Arrays.binarySearch(lineStarts, offset);
+        if (line < 0) return -line - 1;
+        else return line + 1;
+    }
+
+    private static int[] lineStarts(FileObject file) {
+        try {
+            List<Integer> lineStarts = new ArrayList<>();
+
+            lineStarts.add(0);
+
+            for (String line : file.asLines()) {
+                lineStarts.add(lineStarts.get(lineStarts.size() - 1) + line.length() + 1);
+            }
+
+            return lineStarts.stream().mapToInt(ls -> ls).toArray();
+        } catch (IOException ex) {
+            return new int[1];
+        }
     }
 }

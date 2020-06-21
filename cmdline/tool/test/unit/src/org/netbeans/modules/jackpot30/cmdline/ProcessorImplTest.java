@@ -123,7 +123,7 @@ public class ProcessorImplTest extends NbTestCase {
                       "    public int size() { return 0; }\n" +
                       "}\n",
                       "src/META-INF/upgrade/test.hint",
-                      "$coll.size() == 0 :: $coll test.Test;;\n",
+                      "$coll.size() == 0 :: $coll instanceof test.Test;;\n",
                       null,
                       "-source",
                       "7",
@@ -151,7 +151,7 @@ public class ProcessorImplTest extends NbTestCase {
                       "    public int size() { return 0; }\n" +
                       "}\n",
                       "src/META-INF/upgrade/test.hint",
-                      "$coll.size() == 0 :: $coll test.Test;;\n",
+                      "$coll.size() == 0 :: $coll instanceof test.Test;;\n",
                       null,
                       "-source",
                       "7",

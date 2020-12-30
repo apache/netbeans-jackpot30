@@ -19,11 +19,8 @@
 package org.netbeans.modules.jackpot30.cmdline;
 
 import com.sun.tools.javac.Main;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,7 +32,6 @@ import java.util.regex.Pattern;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 import org.netbeans.junit.NbTestCase;
-import org.openide.filesystems.FileUtil;
 
 /**
  *
@@ -59,9 +55,10 @@ public class ProcessorImplTest extends NbTestCase {
                       "src/test/Test.java",
                       "package test;\n" +
                       "public class Test {\n" +
-                      "    private void test(java.util.Collection c) {\n" +
+                      "    public boolean test(java.util.Collection c) {\n" +
                       "        boolean b1 = c.size() == 0;\n" +
                       "\tboolean b2 = c.size() == 0;\n" +
+                      "        return b1 || b2;\n" +
                       "    }\n" +
                       "}\n",
                       null,
@@ -82,9 +79,10 @@ public class ProcessorImplTest extends NbTestCase {
                       "src/test/Test.java",
                       "package test;\n" +
                       "public class Test {\n" +
-                      "    private void test(java.util.Collection c) {\n" +
+                      "    public boolean test(java.util.Collection c) {\n" +
                       "        boolean b1 = c.size() == 0;\n" +
                       "\tboolean b2 = c.size() == 0;\n" +
+                      "        return b1 || b2;\n" +
                       "    }\n" +
                       "}\n",
                       "cfg_hints.xml",
@@ -116,9 +114,10 @@ public class ProcessorImplTest extends NbTestCase {
                       "src/test/Test.java",
                       "package test;\n" +
                       "public class Test {\n" +
-                      "    private void test(Test c) {\n" +
+                      "    public boolean test(Test c) {\n" +
                       "        boolean b1 = c.size() == 0;\n" +
                       "\tboolean b2 = c.size() == 0;\n" +
+                      "        return b1 || b2;\n" +
                       "    }\n" +
                       "    public int size() { return 0; }\n" +
                       "}\n",
@@ -144,9 +143,10 @@ public class ProcessorImplTest extends NbTestCase {
                       "src/test/Test.java",
                       "package test;\n" +
                       "public class Test {\n" +
-                      "    private void test(Test c) {\n" +
+                      "    public boolean test(Test c) {\n" +
                       "        boolean b1 = c.size() == 0;\n" +
                       "\tboolean b2 = c.size() == 0;\n" +
+                      "        return b1 || b2;\n" +
                       "    }\n" +
                       "    public int size() { return 0; }\n" +
                       "}\n",

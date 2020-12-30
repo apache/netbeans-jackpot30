@@ -65,6 +65,7 @@ import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionException;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
+import org.netbeans.api.actions.Savable;
 import org.netbeans.api.java.classpath.ClassPath;
 import org.netbeans.api.java.source.CompilationController;
 import org.netbeans.api.java.source.ModificationResult;
@@ -107,7 +108,6 @@ import org.netbeans.spi.java.classpath.support.ClassPathSupport;
 import org.netbeans.spi.java.hints.Hint.Kind;
 import org.netbeans.spi.java.hints.HintContext;
 import org.netbeans.spi.java.queries.SourceLevelQueryImplementation2;
-import org.openide.cookies.EditorCookie;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
 import org.openide.text.PositionRef;
@@ -143,6 +143,9 @@ public class Main {
             System.err.println("Error: no suitable javac found, please run on JDK 11+.");
             return 1;
         }
+
+        Utils.addExports();
+
         System.setProperty("netbeans.user", "/tmp/tmp-foo");
         System.setProperty("SourcePath.no.source.filter", "true");
 
@@ -884,6 +887,13 @@ public class Main {
         } else {
             for (ModificationResult mr : diffs) {
                 mr.commit();
+                //ensure all modified files are saved:
+                for (FileObject file : mr.getModifiedFileObjects()) {
+                    Savable sc = file.getLookup().lookup(Savable.class);
+                    if (sc != null) {
+                        sc.save();
+                    }
+                }
             }
         }
     }

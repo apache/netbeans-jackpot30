@@ -18,18 +18,29 @@
  */
 package org.netbeans.modules.jackpot30.cmdline.lib;
 
+import com.sun.source.util.JavacTask;
 import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
+import javax.tools.ForwardingJavaFileManager;
+import javax.tools.JavaCompiler;
+import javax.tools.JavaCompiler.CompilationTask;
+import javax.tools.JavaFileManager;
+import javax.tools.JavaFileManager.Location;
+import javax.tools.ToolProvider;
 import org.netbeans.api.annotations.common.NonNull;
 import org.netbeans.api.java.classpath.ClassPath;
 import org.netbeans.modules.java.hints.providers.spi.HintDescription;
@@ -156,5 +167,26 @@ public class Utils {
         return modules == null ?
             jrtRoot :
             modules;
+    }
+
+    public static void addExports() {
+        class CurrentClassLoaderFM extends ForwardingJavaFileManager<JavaFileManager> {
+            public CurrentClassLoaderFM(JavaFileManager delegate) {
+                super(delegate);
+            }
+            @Override
+            public ClassLoader getClassLoader(Location location) {
+                return Utils.class.getClassLoader();
+            }
+        }
+        JavaCompiler compilerTool = ToolProvider.getSystemJavaCompiler();
+        try (CurrentClassLoaderFM fm = new CurrentClassLoaderFM(compilerTool.getStandardFileManager(d -> {}, null, null))) {
+            PrintWriter nullWriter = new PrintWriter(new StringWriter());
+            //using JavacTask.analyze instead of CompilationTask.call to avoid closing the current ClassLoader:
+            ((JavacTask) compilerTool.getTask(nullWriter, fm, d -> {}, Arrays.asList("-proc:none", "-XDaccessInternalAPI"), Arrays.asList("java.lang.Object"), null)).analyze();
+        } catch (IOException ex) {
+            //ignore...
+            ex.printStackTrace();
+        }
     }
 }

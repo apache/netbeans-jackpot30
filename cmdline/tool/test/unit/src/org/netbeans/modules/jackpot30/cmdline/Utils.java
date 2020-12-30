@@ -62,11 +62,8 @@ public class Utils {
         } else {
             //JDK 9+:
             return Arrays.asList(javaHome + "/bin/javac",
-                                 "-J--add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED",
                                  "-J--add-opens=java.base/java.net=ALL-UNNAMED", //stream handler factory
-                                 "-J--add-opens=java.desktop/sun.awt=ALL-UNNAMED", //org.openide.util.RequestProcessor$TopLevelThreadGroup to method sun.awt.AppContext.getAppContext()
-                                 "-J--add-opens=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED", //Illegal reflective access by org.netbeans.modules.jackpot30.cmdline.ProcessorImpl to field com.sun.tools.javac.processing.JavacProcessingEnvironment.context
-                                 "-J--add-opens=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED" //Illegal reflective access by org.netbeans.modules.jackpot30.cmdline.ProcessorImpl to method com.sun.tools.javac.util.Context.get(java.lang.Class)
+                                 "-J--add-opens=java.desktop/sun.awt=ALL-UNNAMED" //org.openide.util.RequestProcessor$TopLevelThreadGroup to method sun.awt.AppContext.getAppContext()
             );
         }
     }

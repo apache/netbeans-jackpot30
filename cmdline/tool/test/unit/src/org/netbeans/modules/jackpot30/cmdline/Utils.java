@@ -62,6 +62,7 @@ public class Utils {
         } else {
             //JDK 9+:
             return Arrays.asList(javaHome + "/bin/javac",
+                                 "-J--illegal-access=deny",
                                  "-J--add-opens=java.base/java.net=ALL-UNNAMED", //stream handler factory
                                  "-J--add-opens=java.desktop/sun.awt=ALL-UNNAMED" //org.openide.util.RequestProcessor$TopLevelThreadGroup to method sun.awt.AppContext.getAppContext()
             );

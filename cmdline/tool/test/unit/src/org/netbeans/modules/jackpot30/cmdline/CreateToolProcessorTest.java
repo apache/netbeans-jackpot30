@@ -89,7 +89,12 @@ public class CreateToolProcessorTest extends ProcessorImplTest {
         @Override
         public void run() {
             try {
-                FileUtil.copy(ins, out);
+                int read;
+
+                while ((read = ins.read()) != (-1)) {
+                    out.write(read);
+                    System.out.write(read);
+                }
             } catch (IOException ex) {
                 Exceptions.printStackTrace(ex);
             } finally {

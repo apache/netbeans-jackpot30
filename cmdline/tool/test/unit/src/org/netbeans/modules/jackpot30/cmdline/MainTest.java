@@ -26,7 +26,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.lang.annotation.RetentionPolicy;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -251,26 +250,22 @@ public class MainTest extends NbTestCase {
     }
 
     public void testConfigurationFileCmdLineOverride() throws Exception {
-        String golden =
+        String code =
             "package test;\n" +
             "public class Test {\n" +
-            "    private void test(java.util.Collection c) {\n" +
+            "    public boolean test(java.util.Collection c) {\n" +
             "        boolean b = c.size() == 0;\n" +
+            "        return b;\n" +
             "    }\n" +
             "}\n";
 
-        doRunCompiler(golden,
+        doRunCompiler(code,
                       "${workdir}/src/test/Test.java:4: warning: [Usage_of_size_equals_0] Usage of .size() == 0 can be replaced with .isEmpty()\n" +
                       "        boolean b = c.size() == 0;\n" +
                       "                    ^\n",
                       null,
                       "src/test/Test.java",
-                      "package test;\n" +
-                      "public class Test {\n" +
-                      "    private void test(java.util.Collection c) {\n" +
-                      "        boolean b = c.size() == 0;\n" +
-                      "    }\n" +
-                      "}\n",
+                      code,
                       "settings.xml",
                       "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                       "<!DOCTYPE configuration PUBLIC \"-//NetBeans//DTD Tool Configuration 1.0//EN\" \"http://www.netbeans.org/dtds/ToolConfiguration-1_0.dtd\">\n" +
@@ -374,9 +369,10 @@ public class MainTest extends NbTestCase {
         String code =
             "package test;\n" +
             "public class Test {\n" +
-            "    private void test(java.util.Collection c) {\n" +
+            "    public boolean test(java.util.Collection c) {\n" +
             "        boolean b1 = c.size() == 0;\n" +
             "        boolean b2 = c.size() <= 0;\n" +
+            "        return b1 || b2;\n" +
             "    }\n" +
             "}\n";
 
@@ -1149,6 +1145,7 @@ public class MainTest extends NbTestCase {
             "public class DoRunTests extends DeclarativeHintsTestBase {\n" +
             "\n" +
             "    public static TestSuite suite() {\n" +
+            "        org.netbeans.modules.jackpot30.cmdline.lib.Utils.addExports();\n" + //TODO: should be part of DeclarativeHintsTestBase!
             "        return suite(DoRunTests.class);\n" +
             "    }\n" +
             "\n" +

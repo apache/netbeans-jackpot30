@@ -27,13 +27,10 @@ import com.sun.source.util.TaskListener;
 import com.sun.source.util.TreePath;
 import com.sun.source.util.TreePathScanner;
 import com.sun.source.util.Trees;
-import com.sun.tools.javac.comp.Resolve;
-import com.sun.tools.javac.util.Context;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
@@ -85,7 +82,6 @@ import org.netbeans.spi.java.hints.Hint;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
 import org.openide.filesystems.URLMapper;
-import org.openide.util.Exceptions;
 import org.openide.util.Lookup;
 
 /**
@@ -138,15 +134,16 @@ public class ProcessorImpl extends AbstractProcessor {
     }
 
     private void runHints() {
+        Utils.addExports();
+
         Trees trees = Trees.instance(processingEnv);
         Level originalLoggerLevel = TOP_LOGGER.getLevel();
         Path toDelete = null;
         try {
             TOP_LOGGER.setLevel(Level.OFF);
             System.setProperty("RepositoryUpdate.increasedLogLevel", "OFF");
-            Field contextField = processingEnv.getClass().getDeclaredField("context");
-            contextField.setAccessible(true);
-            Object context = contextField.get(processingEnv);
+            Method getContext = processingEnv.getClass().getDeclaredMethod("getContext");
+            Object context = getContext.invoke(processingEnv);
             Method get = context.getClass().getDeclaredMethod("get", Class.class);
             JavaFileManager fileManager = (JavaFileManager) get.invoke(context, JavaFileManager.class);
 
@@ -240,7 +237,7 @@ public class ProcessorImpl extends AbstractProcessor {
                     }
                 }
             }, true);
-        } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException | NoSuchMethodException | InvocationTargetException | IOException ex) {
+        } catch (SecurityException | IllegalArgumentException | IllegalAccessException | NoSuchMethodException | InvocationTargetException | IOException ex) {
             processingEnv.getMessager().printMessage(Kind.ERROR, "Unexpected exception: " + ex.getMessage());
             Logger.getLogger(ProcessorImpl.class.getName()).log(Level.SEVERE, null, ex);
         } finally {

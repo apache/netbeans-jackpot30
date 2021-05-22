@@ -193,7 +193,15 @@ public class ProcessorImpl extends AbstractProcessor {
 
             HintsSettings settings = HintsSettings.createPreferencesBasedHintsSettings(ToolPreferences.from(settingsURI).getPreferences("hints", "text/x-java"), true, null);
 
-            final Map<HintMetadata, ? extends Collection<? extends HintDescription>> allHints = RulesManager.getInstance().readHints(null, Arrays.asList(bootCP, compileCP, sourceCP), new AtomicBoolean());
+            final Map<HintMetadata, ? extends Collection<? extends HintDescription>> allHints;
+            java.io.PrintStream oldErr = System.err;
+            try {
+                //XXX: TreeUtilities.unenter prints exceptions to stderr on JDK 11, throw the output away:
+                System.setErr(new java.io.PrintStream(new java.io.ByteArrayOutputStream()));
+                allHints = RulesManager.getInstance().readHints(null, Arrays.asList(bootCP, compileCP, sourceCP), new AtomicBoolean());
+            } finally {
+                System.setErr(oldErr);
+            }
             List<HintDescription> hints = new ArrayList<>();
 
             for (Entry<HintMetadata, ? extends Collection<? extends HintDescription>> e : allHints.entrySet()) {

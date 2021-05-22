@@ -24,8 +24,8 @@ addons:
 jdk:
   - openjdk11
 before_script:
-  - wget 'https://archive.apache.org/dist/netbeans/netbeans/12.3/netbeans-12.3-bin.zip' -O /tmp/netbeans-12.3-bin.zip
-  - (cd $HOME; unzip /tmp/netbeans-12.3-bin.zip)
+  - wget 'https://archive.apache.org/dist/netbeans/netbeans/12.4/netbeans-12.4-bin.zip' -O /tmp/netbeans-12.4-bin.zip
+  - (cd $HOME; unzip /tmp/netbeans-12.4-bin.zip)
   - unset _JAVA_OPTIONS
 script:
   - export JDK11=$JAVA_HOME

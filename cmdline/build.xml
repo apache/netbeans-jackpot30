@@ -52,7 +52,7 @@
     </target>
 
     <target name="build-and-test">
-        <property name="version" value="12.3" />
+        <property name="version" value="12.4" />
         <condition property="jackpot.root" value="${basedir}" else="${basedir}/..">
             <available file="${basedir}/LICENSE" />
         </condition>

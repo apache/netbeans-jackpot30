@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 language: java
+dist: bionic
 addons:
   apt:
     packages:
@@ -24,8 +25,8 @@ addons:
 jdk:
   - openjdk11
 before_script:
-  - wget 'https://archive.apache.org/dist/netbeans/netbeans/12.3/netbeans-12.3-bin.zip' -O /tmp/netbeans-12.3-bin.zip
-  - (cd $HOME; unzip /tmp/netbeans-12.3-bin.zip)
+  - wget 'https://www.apache.org/dist/netbeans/netbeans/12.5/netbeans-12.5-bin.zip' -O /tmp/netbeans-12.5-bin.zip
+  - (cd $HOME; unzip /tmp/netbeans-12.5-bin.zip)
   - unset _JAVA_OPTIONS
 script:
   - export JDK11=$JAVA_HOME

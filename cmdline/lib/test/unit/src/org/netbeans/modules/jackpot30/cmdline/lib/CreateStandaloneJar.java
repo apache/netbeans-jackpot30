@@ -565,6 +565,12 @@ public abstract class CreateStandaloneJar extends NbTestCase {
             "net.bytebuddy.",
             "joptsimple.",
             "io.reflectoring.diffparser.",
-            "org.slf4j."
+            "org.slf4j.",
+            "com.sun.source.",
+            "com.sun.tools.",
+            "javax.tools.",
+            "javax.annotation.processing.",
+            "javax.lang.model.",
+            "nbjavac."
     ));
 }

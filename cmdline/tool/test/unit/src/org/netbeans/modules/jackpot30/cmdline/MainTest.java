@@ -41,6 +41,7 @@ import javax.tools.SimpleJavaFileObject;
 import javax.tools.ToolProvider;
 import org.junit.runner.Result;
 import org.netbeans.junit.NbTestCase;
+import org.netbeans.modules.jackpot30.cmdline.lib.TestUtils;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
 
@@ -49,6 +50,8 @@ import org.openide.filesystems.FileUtil;
  * @author lahvac
  */
 public class MainTest extends NbTestCase {
+
+    private static final String TEST_HINT = "Usage of [Collection|Map].size() == 0";
 
     public MainTest(String name) {
         super(name);
@@ -76,7 +79,7 @@ public class MainTest extends NbTestCase {
                       null,
                       "--apply",
                       "--hint",
-                      "Usage of .size() == 0");
+                      TEST_HINT);
     }
 
     public void testDoNotApply() throws Exception {
@@ -90,10 +93,10 @@ public class MainTest extends NbTestCase {
             "}\n";
 
         doRunCompiler(golden,
-                      "${workdir}/src/test/Test.java:4: warning: [Usage_of_size_equals_0] Usage of .size() == 0 can be replaced with .isEmpty()\n" +
+                      "${workdir}/src/test/Test.java:4: warning: [Usage_of_Collection_Map_size_equals_0] c.size() == 0 can be replaced with c.isEmpty()\n" +
                       "        boolean b1 = c.size() == 0;\n" +
                       "                     ^\n" +
-                      "${workdir}/src/test/Test.java:5: warning: [Usage_of_size_equals_0] Usage of .size() == 0 can be replaced with .isEmpty()\n" +
+                      "${workdir}/src/test/Test.java:5: warning: [Usage_of_Collection_Map_size_equals_0] c.size() == 0 can be replaced with c.isEmpty()\n" +
                       "\tboolean b2 = c.size() == 0;\n" +
                       "\t             ^\n",
                       null,
@@ -107,7 +110,7 @@ public class MainTest extends NbTestCase {
                       "}\n",
                       null,
                       "--hint",
-                      "Usage of .size() == 0",
+                      TEST_HINT,
                       "--no-apply");
     }
 
@@ -171,7 +174,7 @@ public class MainTest extends NbTestCase {
                       null,
                       "--apply",
                       "--hint",
-                      "Usage of .size() == 0",
+                      TEST_HINT,
                       "--source",
                       "1.6");
     }
@@ -260,7 +263,7 @@ public class MainTest extends NbTestCase {
             "}\n";
 
         doRunCompiler(code,
-                      "${workdir}/src/test/Test.java:4: warning: [Usage_of_size_equals_0] Usage of .size() == 0 can be replaced with .isEmpty()\n" +
+                      "${workdir}/src/test/Test.java:4: warning: [Usage_of_Collection_Map_size_equals_0] c.size() == 0 can be replaced with c.isEmpty()\n" +
                       "        boolean b = c.size() == 0;\n" +
                       "                    ^\n",
                       null,
@@ -506,10 +509,10 @@ public class MainTest extends NbTestCase {
 
         doRunCompiler(equivalentValidator(code),
                       equivalentValidator(
-                          "${workdir}/src/test/Test.java:4: warning: [Usage_of_size_equals_0] Usage of .size() == 0 can be replaced with .isEmpty()\n" +
+                          "${workdir}/src/test/Test.java:4: warning: [Usage_of_Collection_Map_size_equals_0] c.size() == 0 can be replaced with c.isEmpty()\n" +
                           "        boolean b1 = c.size() == 0;\n" +
                           "                     ^\n" +
-                          "${workdir}/src/test/Test.java:5: warning: [Usage_of_size_equals_0] Usage of .size() == 0 can be replaced with .isEmpty()\n" +
+                          "${workdir}/src/test/Test.java:5: warning: [Usage_of_Collection_Map_size_equals_0] c.size() == 0 can be replaced with c.isEmpty()\n" +
                           "\tboolean b2 = c.size() == 0;\n" +
                           "\t             ^\n"
                       ),
@@ -519,7 +522,7 @@ public class MainTest extends NbTestCase {
                       code,
                       null,
                       "--hint",
-                      "Usage of .size() == 0",
+                      TEST_HINT,
                       "--no-apply",
                       "--fail-on-warnings");
     }
@@ -886,7 +889,7 @@ public class MainTest extends NbTestCase {
                       "parameters.txt",
                       "--apply\n" +
                       "--hint\n" +
-                      "Usage of .size() == 0\n",
+                      TEST_HINT + "\n",
                       null,
                       "@" + getWorkDirPath() + "/parameters.txt");
     }
@@ -915,7 +918,7 @@ public class MainTest extends NbTestCase {
                       "--group\n" +
                       "--source 8 --sourcepath ${workdir}/src\n" +
                       "--hint\n" +
-                      "Usage of .size() == 0\n",
+                      TEST_HINT + "\n",
                       null,
                       "@" + getWorkDirPath() + "/parameters.txt");
     }
@@ -933,10 +936,10 @@ public class MainTest extends NbTestCase {
             "}\n";
 
         doRunCompiler(golden,
-                      "${workdir}/src/test/Test.java:5: warning: [Usage_of_size_equals_0] Usage of .size() == 0 can be replaced with .isEmpty()\n" +
+                      "${workdir}/src/test/Test.java:5: warning: [Usage_of_Collection_Map_size_equals_0] c.size() == 0 can be replaced with c.isEmpty()\n" +
                       "        boolean b2 = c.size() == 0;\n" +
                       "                     ^\n" +
-                      "${workdir}/src/test/Test.java:7: warning: [Usage_of_size_equals_0] Usage of .size() == 0 can be replaced with .isEmpty()\n" +
+                      "${workdir}/src/test/Test.java:7: warning: [Usage_of_Collection_Map_size_equals_0] c.size() == 0 can be replaced with c.isEmpty()\n" +
                       "        boolean b3 = c.size() == 0;\n" +
                       "                     ^\n",
                       "",
@@ -960,7 +963,7 @@ public class MainTest extends NbTestCase {
                       null,
                       "--source", "8",
                       "--sourcepath", "${workdir}/src",
-                      "--hint", "Usage of .size() == 0",
+                      "--hint", TEST_HINT,
                       "--filter-patch", getWorkDirPath() + "/patch.diff");
     }
 
@@ -1008,7 +1011,7 @@ public class MainTest extends NbTestCase {
                       "--apply",
                       "--source", "8",
                       "--sourcepath", "${workdir}/src",
-                      "--hint", "Usage of .size() == 0",
+                      "--hint", TEST_HINT,
                       "--filter-patch", getWorkDirPath() + "/patch.diff");
     }
 
@@ -1066,7 +1069,7 @@ public class MainTest extends NbTestCase {
 
             target.getParentFile().mkdirs();
             
-            Utils.copyStringToFile(target, fileAndContent.get(cntr + 1));
+            TestUtils.copyStringToFile(target, fileAndContent.get(cntr + 1));
         }
 
         File wd = getWorkDir();
@@ -1099,7 +1102,7 @@ public class MainTest extends NbTestCase {
         reallyRunCompiler(wd, exitcode, output, options.toArray(new String[0]));
 
         if (fileContentValidator != null) {
-            fileContentValidator.validate(Utils.copyFileToString(source));
+            fileContentValidator.validate(TestUtils.copyFileToString(source));
         }
         if (stdOutValidator != null) {
             stdOutValidator.validate(output[0].replaceAll(Pattern.quote(wd.getAbsolutePath()), Matcher.quoteReplacement("${workdir}")));
@@ -1123,7 +1126,8 @@ public class MainTest extends NbTestCase {
         System.setErr(new PrintStream(errData, true, "UTF-8"));
 
         try {
-            assertEquals(exitcode, Main.compile(params));
+            int actualExit = Main.compile(params);
+            assertEquals(exitcode, actualExit);
         } finally {
             System.setProperty("user.dir", oldUserDir);
             System.out.close();
@@ -1157,7 +1161,7 @@ public class MainTest extends NbTestCase {
         File classes = new File(wd, "classes");
 
         classes.mkdirs();
-        Utils.copyStringToFile(new File(classes, "h.hint"), "$1.equals(\"\") :: $1 instanceof java.lang.String => $1.isEmpty();;");
+        TestUtils.copyStringToFile(new File(classes, "h.hint"), "$1.equals(\"\") :: $1 instanceof java.lang.String => $1.isEmpty();;");
 
         String test = "%%TestCase pos\n" +
                       "package test;\n" +
@@ -1179,7 +1183,7 @@ public class MainTest extends NbTestCase {
                       "public class Test {{\n" +
                       " System.err.println(\"a\".isEmpty());\n" +
                       "}}\n";
-        Utils.copyStringToFile(new File(classes, "h.test"), test);
+        TestUtils.copyStringToFile(new File(classes, "h.test"), test);
 
         List<String> options = Arrays.asList("-d", classes.getAbsolutePath(), "-source", "8", "-target", "8");
         List<SourceFO> files = Arrays.asList(new SourceFO("DoRunTests.java", CODE_RUN_DECLARATIVE));

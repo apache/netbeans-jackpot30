@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.jackpot30.cmdline;
+package org.netbeans.modules.jackpot30.cmdline.processor;
 
 import java.util.regex.Pattern;
 import javax.annotation.processing.Processor;
-import org.netbeans.modules.jackpot30.cmdline.Main.BCPFallBack;
-import org.netbeans.modules.jackpot30.cmdline.Main.SourceLevelQueryImpl;
+//import org.netbeans.modules.jackpot30.cmdline.Main.BCPFallBack;
+//import org.netbeans.modules.jackpot30.cmdline.Main.SourceLevelQueryImpl;
 import org.netbeans.modules.jackpot30.cmdline.lib.CreateStandaloneJar;
 import org.netbeans.modules.jackpot30.cmdline.lib.CreateStandaloneJar.Info;
 import org.netbeans.modules.java.hints.declarative.PatternConvertorImpl;
@@ -37,24 +37,26 @@ import org.netbeans.spi.java.queries.SourceLevelQueryImplementation2;
  *
  * @author lahvac
  */
-public class CreateTool extends CreateStandaloneJar {
+public class CreateToolProcessor extends CreateStandaloneJar {
 
-    public CreateTool(String name) {
+    public CreateToolProcessor(String name) {
         super(name, "jackpot");
     }
 
     @Override
     protected Info computeInfo() {
-        return new Info().addAdditionalRoots(Main.class.getName(), DeclarativeHintsTestBase.class.getName(), OpenProjectsTrampolineImpl.class.getName(), J2SEProject.class.getName(), DefaultJavaPlatformProvider.class.getName(), PatternConvertorImpl.class.getName(), BCPFallBack.class.getName(), "org.slf4j.impl.StaticLoggerBinder")
-                         .addAdditionalResources("org/netbeans/modules/java/hints/resources/Bundle.properties", "org/netbeans/modules/java/hints/declarative/resources/Bundle.properties")
+        return new Info().addAdditionalRoots(ProcessorImpl.class.getName(), DeclarativeHintsTestBase.class.getName(), OpenProjectsTrampolineImpl.class.getName(), J2SEProject.class.getName(), DefaultJavaPlatformProvider.class.getName(), PatternConvertorImpl.class.getName()/*, BCPFallBack.class.getName()*/, "org.slf4j.impl.StaticLoggerBinder")
+                         .addAdditionalResources("org/netbeans/modules/java/hints/resources/Bundle.properties", "org/netbeans/modules/java/hints/declarative/resources/Bundle.properties", "org/netbeans/modules/jackpot30/cmdline/processor/cfg_hints.xml")
                          .addAdditionalLayers("org/netbeans/modules/java/hints/resources/layer.xml", "org/netbeans/modules/java/hints/declarative/resources/layer.xml")
                          .addMetaInfRegistrations(new MetaInfRegistration(org.netbeans.modules.project.uiapi.OpenProjectsTrampoline.class, OpenProjectsTrampolineImpl.class))
-                         .addMetaInfRegistrations(new MetaInfRegistration(ClassPathProvider.class.getName(), BCPFallBack.class.getName(), 9999))
-                         .addMetaInfRegistrations(new MetaInfRegistration(ClassPathProvider.class.getName(), Main.ClassPathProviderImpl.class.getName(), 100))
-                         .addMetaInfRegistrations(new MetaInfRegistration(SourceLevelQueryImplementation2.class.getName(), SourceLevelQueryImpl.class.getName(), 100))
+                         .addMetaInfRegistrations(new MetaInfRegistration(Processor.class, ProcessorImpl.class))
+//                         .addMetaInfRegistrations(new MetaInfRegistration(ClassPathProvider.class.getName(), BCPFallBack.class.getName(), 9999))
+//                         .addMetaInfRegistrations(new MetaInfRegistration(ClassPathProvider.class.getName(), Main.ClassPathProviderImpl.class.getName(), 100))
+//                         .addMetaInfRegistrations(new MetaInfRegistration(SourceLevelQueryImplementation2.class.getName(), SourceLevelQueryImpl.class.getName(), 100))
                          .addMetaInfRegistrationToCopy(PatternConvertor.class.getName())
                          .addExcludePattern(Pattern.compile("junit\\.framework\\..*"))
-                         .setEscapeJavaxLang();
+                         //TODO: add javac excludes
+                         ;
     }
 
 }

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.netbeans.modules.jackpot30.cmdline;
+package org.netbeans.modules.jackpot30.cmdline.processor;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -127,7 +127,7 @@ public class CreateToolProcessorTest extends ProcessorImplTest {
                 hintsList = File.createTempFile("hints", "list");
 
 //                if (!compiler.canRead()) {
-                    new CreateTool("").createCompiler(compiler, hintsList);
+                    new CreateToolProcessor("").createCompiler(compiler, hintsList);
 //                }
             }
             protected void tearDown() {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.jackpot30.cmdline;
+package org.netbeans.modules.jackpot30.cmdline.processor;
 
 import com.sun.tools.javac.Main;
 import java.io.ByteArrayOutputStream;
@@ -32,6 +32,7 @@ import java.util.regex.Pattern;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 import org.netbeans.junit.NbTestCase;
+import org.netbeans.modules.jackpot30.cmdline.lib.TestUtils;
 
 /**
  *
@@ -45,10 +46,10 @@ public class ProcessorImplTest extends NbTestCase {
 
     public void testHardcoded1() throws Exception {
         doRunCompiler("",
-                      "${workdir}/src/test/Test.java:4: warning: [Usage_of_size_equals_0] Usage of .size() == 0 can be replaced with .isEmpty()\n" +
+                      "${workdir}/src/test/Test.java:4: warning: [Usage_of_Collection_Map_size_equals_0] c.size() == 0 can be replaced with c.isEmpty()\n" +
                       "        boolean b1 = c.size() == 0;\n" +
                       "                      ^\n" +
-                      "${workdir}/src/test/Test.java:5: warning: [Usage_of_size_equals_0] Usage of .size() == 0 can be replaced with .isEmpty()\n" +
+                      "${workdir}/src/test/Test.java:5: warning: [Usage_of_Collection_Map_size_equals_0] c.size() == 0 can be replaced with c.isEmpty()\n" +
                       "\tboolean b2 = c.size() == 0;\n" +
                       "\t              ^\n" +
                       "2 warnings\n",
@@ -69,10 +70,10 @@ public class ProcessorImplTest extends NbTestCase {
 
     public void testHardcodedWithConfiguration() throws Exception {
         doRunCompiler("",
-                      "${workdir}/src/test/Test.java:4: warning: [Usage_of_size_equals_0] Usage of .size() == 0 can be replaced with .isEmpty()\n" +
+                      "${workdir}/src/test/Test.java:4: warning: [Usage_of_Collection_Map_size_equals_0] c.size() == 0 can be replaced with c.isEmpty()\n" +
                       "        boolean b1 = c.size() == 0;\n" +
                       "                      ^\n" +
-                      "${workdir}/src/test/Test.java:5: warning: [Usage_of_size_equals_0] Usage of .size() == 0 can be replaced with .isEmpty()\n" +
+                      "${workdir}/src/test/Test.java:5: warning: [Usage_of_Collection_Map_size_equals_0] c.size() == 0 can be replaced with c.isEmpty()\n" +
                       "\tboolean b2 = c.size() == 0;\n" +
                       "\t              ^\n" +
                       "2 warnings\n",
@@ -186,7 +187,7 @@ public class ProcessorImplTest extends NbTestCase {
 
             target.getParentFile().mkdirs();
 
-            Utils.copyStringToFile(target, fileAndContent.get(cntr + 1));
+            TestUtils.copyStringToFile(target, fileAndContent.get(cntr + 1));
 
             if (target.getName().endsWith(".java"))
                 params.add(target.getAbsolutePath());

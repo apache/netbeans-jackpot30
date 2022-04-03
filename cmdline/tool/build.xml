@@ -48,7 +48,7 @@
              skipexisting="true"/>
     </target>
 
-    <target name="build-init" depends="harness.build-init,-download-joptsimple,-download-diffparser,-download-slf4j" />
+    <target name="build-init" depends="harness.build-init,-download-joptsimple,-download-diffparser,-download-slf4j,-setup.bootclasspath" />
 
     <target name="create-standalone-tool" depends="init,netbeans">
         <mkdir dir="${build.classes.dir}/../jackpot" />
@@ -106,6 +106,19 @@
     <target name="-check-scripted-tests" depends="build-init">
         <condition property="has.scripted.tests" value="true">
             <available file="test/scripted/config" />
+        </condition>
+    </target>
+
+    <target name="-setup.bootclasspath" depends="harness.build-init">
+        <property name="test.nbjdk.home" location="${nbjdk.home}" />
+        <!--<condition property="test.bootclasspath.prepend.args"-->
+        <condition property="test.run.args"
+                   value="--limit-modules=java.base,java.xml,java.prefs,java.management,java.logging,java.desktop,java.instrument,java.naming,jdk.zipfs --add-opens=java.base/java.net=ALL-UNNAMED"
+                   else="-Xbootclasspath/p:${nbplatform.active.dir}/java/modules/ext/nb-javac-jdk-17-api.jar:${nbplatform.active.dir}/java/modules/ext/nb-javac-jdk-17.jar">
+            <or>
+                <available classpath="${test.nbjdk.home}/lib/ct.sym" resource="B/java.base/java/lang/String.sig" />
+                <available classpath="${test.nbjdk.home}/lib/ct.sym" resource="B/system-modules" />
+            </or>
         </condition>
     </target>
 

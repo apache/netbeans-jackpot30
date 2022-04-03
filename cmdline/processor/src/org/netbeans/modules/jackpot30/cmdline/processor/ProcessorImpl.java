@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.jackpot30.cmdline;
+package org.netbeans.modules.jackpot30.cmdline.processor;
 
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.Tree;
@@ -177,7 +177,7 @@ public class ProcessorImpl extends AbstractProcessor {
             File configurationFile = configurationFileLoc != null ? new File(configurationFileLoc) : null;
 
             if (configurationFile == null || !configurationFile.canRead()) {
-                URL cfg = ProcessorImpl.class.getResource("/org/netbeans/modules/jackpot30/cmdline/cfg_hints.xml");
+                URL cfg = ProcessorImpl.class.getResource("/org/netbeans/modules/jackpot30/cmdline/processor/cfg_hints.xml");
                 Path tmp = Files.createTempFile("cfg_hints", "xml"); //TODO: delete
                 try (InputStream cfgIn = cfg.openStream();
                      OutputStream out = Files.newOutputStream(tmp)) {

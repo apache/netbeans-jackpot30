@@ -144,8 +144,6 @@ public class Main {
             return 1;
         }
 
-        Utils.addExports();
-
         System.setProperty("netbeans.user", "/tmp/tmp-foo");
         System.setProperty("SourcePath.no.source.filter", "true");
 

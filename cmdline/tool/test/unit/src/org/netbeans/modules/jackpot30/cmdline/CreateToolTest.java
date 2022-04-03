@@ -180,7 +180,7 @@ public class CreateToolTest extends MainTest {
 //                }
             }
             protected void tearDown() {
-                compiler.delete();
+//                compiler.delete();
                 hintsList.delete();
                 compiler = null;
                 hintsList = null;

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.jackpot30.cmdline;
+package org.netbeans.modules.jackpot30.cmdline.lib;
 
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
@@ -29,21 +29,31 @@ import java.util.List;
 import static junit.framework.TestCase.assertNotNull;
 import org.openide.filesystems.FileUtil;
 
-public class Utils {
+public class TestUtils {
 
-    public static List<String> findJavaLauncher() {
-        String javaHome = System.getProperty("java.home");
-        
-        if (System.getProperty("sun.boot.class.path") != null) {
-            //JDK 8:
-            return Arrays.asList(javaHome + "/bin/java");
-        } else {
-            //JDK 9+:
-            return Arrays.asList(javaHome + "/bin/java",
-                                 "--add-opens=java.base/java.net=ALL-UNNAMED", //stream handler factory
-                                 "--add-opens=java.desktop/sun.awt=ALL-UNNAMED" //org.openide.util.RequestProcessor$TopLevelThreadGroup to method sun.awt.AppContext.getAppContext()
-            );
-        }
+    //from TestUtilities:
+    public final static File copyStringToFile (File f, String content) throws Exception {
+        FileOutputStream os = new FileOutputStream(f);
+        InputStream is = new ByteArrayInputStream(content.getBytes("UTF-8"));
+
+        FileUtil.copy(is, os);
+
+        os.close ();
+        is.close();
+
+        return f;
+
+    }
+    
+    public final static String copyFileToString (java.io.File f) throws java.io.IOException {
+        int s = (int)f.length ();
+        byte[] data = new byte[s];
+        int len = new FileInputStream (f).read (data);
+
+        if (len != s)
+            throw new EOFException("truncated file");
+
+        return new String (data);
     }
 
 }

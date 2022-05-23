@@ -1035,6 +1035,32 @@ public class MainTest extends NbTestCase {
         assertEquals(3, Main.findLineForPos(new HashMap<FileObject, int[]>(), test1, 20));
     }
 
+    public void testSource17() throws Exception {
+        String golden =
+            "package test;\n" +
+            "public class Test {\n" +
+            "    private void test(java.util.Collection c) {\n" +
+            "        boolean b = c.isEmpty();\n" +
+            "    }\n" +
+            "}\n";
+
+        doRunCompiler(golden,
+                      null,
+                      null,
+                      "src/test/Test.java",
+                      "package test;\n" +
+                      "public class Test {\n" +
+                      "    private void test(java.util.Collection c) {\n" +
+                      "        boolean b = c.size() == 0;\n" +
+                      "    }\n" +
+                      "}\n",
+                      null,
+                      "--apply",
+                      "--hint",
+                      TEST_HINT,
+                      "--source", "17");
+    }
+
     private static final String DONT_APPEND_PATH = new String("DONT_APPEND_PATH");
     private static final String IGNORE = new String("IGNORE");
 

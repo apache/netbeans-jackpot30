@@ -129,7 +129,7 @@ public class Main {
     private static final String OPTION_NO_APPLY = "no-apply";
     private static final String OPTION_FAIL_ON_WARNINGS = "fail-on-warnings";
     private static final String RUN_TESTS = "run-tests";
-    private static final String SOURCE_LEVEL_DEFAULT = "1.7";
+    private static final String SOURCE_LEVEL_DEFAULT = "1.8";
     private static final String ACCEPTABLE_SOURCE_LEVEL_PATTERN = "(1\\.)?[1-9][0-9]*";
     
     public static void main(String... args) throws IOException, ClassNotFoundException {

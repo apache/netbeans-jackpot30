@@ -96,7 +96,9 @@ public abstract class RunJackpot30 extends AbstractMojo {
                                             "--add-opens=java.base/java.net=ALL-UNNAMED",
                                             "--add-opens=java.desktop/sun.awt=ALL-UNNAMED",
                                             Main.class.getCanonicalName()));
-            new ProcessBuilder(cmdLine).inheritIO().start().waitFor();
+            if (new ProcessBuilder(cmdLine).inheritIO().start().waitFor() != 0) {
+                throw new MojoExecutionException("jackpo30 failed.");
+            }
         } catch (IOException ex) {
             throw new MojoExecutionException(ex.getMessage(), ex);
         } catch (InterruptedException ex) {

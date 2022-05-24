@@ -74,19 +74,21 @@ public class RunJackpot30Test extends TestCase {
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Thread outCopy = new Thread(new CopyStream(p.getInputStream(), System.out, out));
-        Thread errCopy = new Thread(new CopyStream(p.getErrorStream(), System.err));
+        Thread errCopy = new Thread(new CopyStream(p.getErrorStream(), System.err, out));
 
         outCopy.start();
         errCopy.start();
         
-        p.waitFor();
+        int result = p.waitFor();
 
         outCopy.join();
         errCopy.join();
 
         out.close();
 
-        String output = new String(out.toByteArray());
+        String output = new String(out.toByteArray()) +
+                        System.getProperty("line.separator") +
+                        "result: " + result;
         Reader in = new InputStreamReader(new FileInputStream(new File(testDir, "golden")), "UTF-8");
         StringBuilder golden = new StringBuilder();
 

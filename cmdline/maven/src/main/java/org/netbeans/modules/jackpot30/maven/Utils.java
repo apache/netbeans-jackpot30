@@ -47,7 +47,7 @@ public class Utils {
     }
 
     public static String getJackpotConfigurationFile(MavenProject project) {
-        Xpp3Dom configuration = getPluginConfiguration(project, "org.apache.netbeans.modules.jackpot30", "jackpot30-maven-plugin");
+        Xpp3Dom configuration = getJackpotPluginConfiguration(project);
         
         if (configuration != null) {
             Xpp3Dom configurationFileElement = configuration.getChild("configurationFile");
@@ -58,5 +58,23 @@ public class Utils {
         }
 
         return null;
+    }
+
+    public static boolean getJackpotFailOnWarnings(MavenProject project) {
+        Xpp3Dom configuration = getJackpotPluginConfiguration(project);
+
+        if (configuration != null) {
+            Xpp3Dom configurationFileElement = configuration.getChild("failOnWarnings");
+
+            if (configurationFileElement != null) {
+                return "true".equalsIgnoreCase(configurationFileElement.getValue());
+            }
+        }
+
+        return false;
+    }
+
+    private static Xpp3Dom getJackpotPluginConfiguration(MavenProject project) {
+        return getPluginConfiguration(project, "org.apache.netbeans.modules.jackpot30", "jackpot30-maven-plugin");
     }
 }

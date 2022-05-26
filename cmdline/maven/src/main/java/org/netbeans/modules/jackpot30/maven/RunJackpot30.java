@@ -53,6 +53,7 @@ public abstract class RunJackpot30 extends AbstractMojo {
             }
 
             String configurationFile = Utils.getJackpotConfigurationFile(project);
+            boolean failOnWarnings = Utils.getJackpotFailOnWarnings(project);
 
             List<String> cmdLine = new ArrayList<String>();
 
@@ -68,6 +69,10 @@ public abstract class RunJackpot30 extends AbstractMojo {
             if (configurationFile != null) {
                 cmdLine.add("--config-file");
                 cmdLine.add(configurationFile);
+            }
+
+            if (failOnWarnings) {
+                cmdLine.add("--fail-on-warnings");
             }
 
             boolean hasSourceRoots = false;

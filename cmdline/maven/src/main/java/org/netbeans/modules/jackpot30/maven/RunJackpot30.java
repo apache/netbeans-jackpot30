@@ -53,6 +53,7 @@ public abstract class RunJackpot30 extends AbstractMojo {
             }
 
             String configurationFile = Utils.getJackpotConfigurationFile(project);
+            boolean failOnWarnings = Utils.getJackpotFailOnWarnings(project);
 
             List<String> cmdLine = new ArrayList<String>();
 
@@ -68,6 +69,10 @@ public abstract class RunJackpot30 extends AbstractMojo {
             if (configurationFile != null) {
                 cmdLine.add("--config-file");
                 cmdLine.add(configurationFile);
+            }
+
+            if (failOnWarnings) {
+                cmdLine.add("--fail-on-warnings");
             }
 
             boolean hasSourceRoots = false;
@@ -96,7 +101,9 @@ public abstract class RunJackpot30 extends AbstractMojo {
                                             "--add-opens=java.base/java.net=ALL-UNNAMED",
                                             "--add-opens=java.desktop/sun.awt=ALL-UNNAMED",
                                             Main.class.getCanonicalName()));
-            new ProcessBuilder(cmdLine).inheritIO().start().waitFor();
+            if (new ProcessBuilder(cmdLine).inheritIO().start().waitFor() != 0) {
+                throw new MojoExecutionException("jackpo30 failed.");
+            }
         } catch (IOException ex) {
             throw new MojoExecutionException(ex.getMessage(), ex);
         } catch (InterruptedException ex) {

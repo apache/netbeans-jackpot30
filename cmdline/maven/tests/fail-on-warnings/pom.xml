@@ -47,6 +47,7 @@
         <version>${jackpot.plugin.version}</version>
         <configuration>
              <configurationFile>jackpot-settings.xml</configurationFile>
+             <failOnWarnings>true</failOnWarnings>
         </configuration>
       </plugin>
       <plugin>

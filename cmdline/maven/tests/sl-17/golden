@@ -1,0 +1,5 @@
+${basedir}/src/main/java/test/App.java:24: warning: [Convert_to_Lambda_or_Member_Reference] This anonymous inner class creation can be turned into a lambda expression.
+        Runnable r = new Runnable() { public void run() { } };
+                         ^
+
+result: 0

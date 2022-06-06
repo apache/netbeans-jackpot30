@@ -69,6 +69,7 @@ public class RunJackpot30Test extends TestCase {
             maven,
             "-Djackpot.plugin.version=13.0",
             "-q",
+            "--batch-mode",
             "jackpot30:analyze"
         }, null, testDir);
 

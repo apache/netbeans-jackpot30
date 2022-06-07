@@ -1,0 +1,12 @@
+${basedir}/src/main/java/test/App.java:24: warning: [Convert_to_Lambda_or_Member_Reference] This anonymous inner class creation can be turned into a lambda expression.
+        Runnable r = new Runnable() { public void run() { } };
+                         ^
+[ERROR] Failed to execute goal org.apache.netbeans.modules.jackpot30:jackpot30-maven-plugin:13.0:analyze (default-cli) on project maven-test: jackpo30 failed. -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException
+
+result: 1

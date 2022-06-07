@@ -71,7 +71,7 @@ public class Utils {
             }
         }
 
-        return false;
+        return true;
     }
 
     private static Xpp3Dom getJackpotPluginConfiguration(MavenProject project) {

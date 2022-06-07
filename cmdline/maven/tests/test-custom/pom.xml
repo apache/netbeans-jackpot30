@@ -45,6 +45,9 @@
         <groupId>org.apache.netbeans.modules.jackpot30</groupId>
         <artifactId>jackpot30-maven-plugin</artifactId>
         <version>${jackpot.plugin.version}</version>
+        <configuration>
+             <failOnWarnings>false</failOnWarnings>
+        </configuration>
       </plugin>
     </plugins>
   </build>

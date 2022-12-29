@@ -1,5 +1,5 @@
 unrecognized source level specification: unparseable
-[ERROR] Failed to execute goal org.apache.netbeans.modules.jackpot30:jackpot30-maven-plugin:13.0:analyze (default-cli) on project maven-test: jackpo30 failed. -> [Help 1]
+[ERROR] Failed to execute goal org.apache.netbeans.modules.jackpot30:jackpot30-maven-plugin:16.0:analyze (default-cli) on project maven-test: jackpo30 failed. -> [Help 1]
 [ERROR] 
 [ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
 [ERROR] Re-run Maven using the -X switch to enable full debug logging.

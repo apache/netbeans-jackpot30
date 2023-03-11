@@ -18,8 +18,6 @@
  */
 package org.netbeans.modules.jackpot30.cmdline.lib;
 
-import com.sun.tools.javac.platform.JDKPlatformProvider;
-import com.sun.tools.javac.platform.PlatformProvider;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -290,7 +288,7 @@ public abstract class CreateStandaloneJar extends NbTestCase {
         registrations.add(new MetaInfRegistration(RulesManager.class.getName(), RulesManagerImpl.class.getName()));
         registrations.add(new MetaInfRegistration(EntityCatalog.class.getName(), EntityCatalogImpl.class.getName()));
         registrations.add(new MetaInfRegistration(CompileWorkerProvider.class.getName(), DefaultCompileWorkerProvider.class.getName()));
-        registrations.add(new MetaInfRegistration(PlatformProvider.class.getName(), escapeJavaxLang(info, JDKPlatformProvider.class.getName())));
+        registrations.add(new MetaInfRegistration("com.sun.tools.javac.platform.PlatformProvider", escapeJavaxLang(info, "com.sun.tools.javac.platform.JDKPlatformProvider")));
 
         registrations.addAll(info.metaInf);
 
@@ -549,7 +547,7 @@ public abstract class CreateStandaloneJar extends NbTestCase {
             VanillaJavacContextEnhancer.class.getName(),
             EntityCatalogImpl.class.getName(),
             DefaultCompileWorkerProvider.class.getName(),
-            JDKPlatformProvider.class.getName()
+            "com.sun.tools.javac.platform.JDKPlatformProvider"
         ));
 
     private static final Set<String> COPY_REGISTRATION = new HashSet<String>(Arrays.<String>asList(

@@ -442,7 +442,19 @@ public class Main {
         WarningsAndErrors wae = new WarningsAndErrors();
 
         ProgressHandleWrapper progress = w.startNextPartWithEmbedding(1);
-        Preferences settings = globalConfig.configurationPreferences != null ? globalConfig.configurationPreferences : new MemoryPreferences();
+        Preferences settings = new MemoryPreferences();
+
+        if (globalConfig.configurationPreferences != null) {
+            try {
+                copyPreferences(globalConfig.configurationPreferences, settings);
+            } catch (BackingStoreException ex) {
+                throw new IOException(ex);
+            }
+        }
+
+        settings.node("org.netbeans.modules.java.hints.bugs.Unused").putBoolean("enabled", false);
+        settings.node("org.netbeans.modules.java.hints.suggestions.Tiny.inlineRedundantVar").putBoolean("enabled", false);
+
         HintsSettings hintSettings = HintsSettings.createPreferencesBasedHintsSettings(settings, globalConfig.useDefaultEnabledSetting, null);
 
         if (globalConfig.hint != null) {
@@ -1274,6 +1286,15 @@ public class Main {
             return lineStarts.stream().mapToInt(ls -> ls).toArray();
         } catch (IOException ex) {
             return new int[1];
+        }
+    }
+
+    private static void copyPreferences(Preferences from, Preferences to) throws BackingStoreException {
+        for (String key : from.keys()) {
+            to.put(key, from.get(key, null));
+        }
+        for (String child : from.childrenNames()) {
+            copyPreferences(from.node(child), to.node(child));
         }
     }
 }

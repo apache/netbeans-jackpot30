@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.jackpot30.cmdline.lib;
 
+import com.sun.tools.javac.platform.JDKPlatformProvider;
+import com.sun.tools.javac.platform.PlatformProvider;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -97,6 +99,8 @@ import org.netbeans.spi.java.classpath.GlobalPathRegistryImplementation;
 import org.netbeans.spi.java.hints.Hint;
 import org.netbeans.spi.java.queries.CompilerOptionsQueryImplementation;
 import org.netbeans.spi.project.ProjectManagerImplementation;
+import org.openide.filesystems.FileObject;
+import org.openide.filesystems.FileUtil;
 import org.openide.filesystems.MIMEResolver;
 import org.openide.filesystems.Repository;
 import org.openide.util.NbCollections;
@@ -286,6 +290,7 @@ public abstract class CreateStandaloneJar extends NbTestCase {
         registrations.add(new MetaInfRegistration(RulesManager.class.getName(), RulesManagerImpl.class.getName()));
         registrations.add(new MetaInfRegistration(EntityCatalog.class.getName(), EntityCatalogImpl.class.getName()));
         registrations.add(new MetaInfRegistration(CompileWorkerProvider.class.getName(), DefaultCompileWorkerProvider.class.getName()));
+        registrations.add(new MetaInfRegistration(PlatformProvider.class.getName(), escapeJavaxLang(info, JDKPlatformProvider.class.getName())));
 
         registrations.addAll(info.metaInf);
 
@@ -303,6 +308,17 @@ public abstract class CreateStandaloneJar extends NbTestCase {
 
         for (Entry<String, Collection<MetaInfRegistration>> e : api2Registrations.entrySet()) {
             addMETA_INFRegistration(out, info, e.getValue());
+        }
+
+        URL ctSym = this.getClass().getClassLoader().getResource("META-INF/ct.sym");
+        FileObject ctSymFO = NBJRTURLMapper.findFileObject(ctSym);
+        FileObject root = ctSymFO.getParent().getParent();
+        Enumeration<? extends FileObject> children = ctSymFO.getChildren(true);
+        while (children.hasMoreElements()) {
+            FileObject file = children.nextElement();
+            if (file.isData()) {
+                out.put(FileUtil.getRelativePath(root, file), file.asBytes());
+            }
         }
 
         try (JarOutputStream outStream = new JarOutputStream(new FileOutputStream(targetCompilerFile))) {
@@ -532,7 +548,8 @@ public abstract class CreateStandaloneJar extends NbTestCase {
             NBJRTURLMapper.class.getName(),
             VanillaJavacContextEnhancer.class.getName(),
             EntityCatalogImpl.class.getName(),
-            DefaultCompileWorkerProvider.class.getName()
+            DefaultCompileWorkerProvider.class.getName(),
+            JDKPlatformProvider.class.getName()
         ));
 
     private static final Set<String> COPY_REGISTRATION = new HashSet<String>(Arrays.<String>asList(

@@ -27,8 +27,8 @@ addons:
 jdk:
   - openjdk8
 before_script:
-  - wget 'https://dlcdn.apache.org/netbeans/netbeans/16/netbeans-16-bin.zip' -O /tmp/netbeans-16-bin.zip
-  - (cd $HOME; unzip /tmp/netbeans-16-bin.zip)
+  - wget 'https://dlcdn.apache.org/netbeans/netbeans/17/netbeans-17-bin.zip' -O /tmp/netbeans-17-bin.zip
+  - (cd $HOME; unzip /tmp/netbeans-17-bin.zip)
   - unset _JAVA_OPTIONS
 script:
   - export JDK11=/usr/lib/jvm/java-11-openjdk-amd64

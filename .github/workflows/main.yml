@@ -40,18 +40,22 @@ jobs:
     steps:
         
       - name: Set up Ubuntu dependencies
-        run: sudo apt install ant ant-optional openjdk-8-jdk openjdk-11-jdk openjdk-17-jdk
+        run: |
+            sudo apt install ant ant-optional openjdk-8-jdk openjdk-11-jdk openjdk-17-jdk
 
       - name: Set up NetBeans
-        run: wget 'https://dlcdn.apache.org/netbeans/netbeans/17/netbeans-17-bin.zip' -O /tmp/netbeans-17-bin.zip
-        run: (cd $HOME; unzip /tmp/netbeans-17-bin.zip)
+        run: |
+            wget 'https://dlcdn.apache.org/netbeans/netbeans/17/netbeans-17-bin.zip' -O /tmp/netbeans-17-bin.zip
+            (cd $HOME; unzip /tmp/netbeans-17-bin.zip)
 
       - name: Run RAT
-        run: (cd cmdline; ant -Dnbplatform.default.harness.dir=$HOME/netbeans/harness rat)
+        run: |
+            (cd cmdline; ant -Dnbplatform.default.harness.dir=$HOME/netbeans/harness rat)
 
       - name: Do build Jackpot
-        run: export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
-        run: export PATH=$JAVA_HOME/bin:$PATH
-        run: export JDK11=/usr/lib/jvm/java-11-openjdk-amd64
-        run: export JDK17=/usr/lib/jvm/java-17-openjdk-amd64
-        run: (cd cmdline; ant -Dnbplatform.default.harness.dir=$HOME/netbeans/harness -DNETBEANS_PLATFORM=$HOME/netbeans -DJDK11=$JDK11 -DJDK17=$JDK17 build-and-test)
+        run: |
+            export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+            export PATH=$JAVA_HOME/bin:$PATH
+            export JDK11=/usr/lib/jvm/java-11-openjdk-amd64
+            export JDK17=/usr/lib/jvm/java-17-openjdk-amd64
+            (cd cmdline; ant -Dnbplatform.default.harness.dir=$HOME/netbeans/harness -DNETBEANS_PLATFORM=$HOME/netbeans -DJDK11=$JDK11 -DJDK17=$JDK17 build-and-test)

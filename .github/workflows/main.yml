@@ -38,7 +38,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-        
+
+      - name: Checkout ${{ github.ref }} ( ${{ github.sha }} )
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+          submodules: false
+
       - name: Set up Ubuntu dependencies
         run: |
             sudo apt install ant ant-optional openjdk-8-jdk openjdk-11-jdk openjdk-17-jdk

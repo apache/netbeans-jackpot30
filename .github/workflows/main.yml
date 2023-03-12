@@ -48,7 +48,7 @@ jobs:
             wget 'https://dlcdn.apache.org/netbeans/netbeans/17/netbeans-17-bin.zip' -O /tmp/netbeans-17-bin.zip
             (cd $HOME; unzip /tmp/netbeans-17-bin.zip)
 
-      - name: Run RAT:
+      - name: Run RAT
         run:
             (cd cmdline; ant -Dnbplatform.default.harness.dir=$HOME/netbeans/harness rat)
 

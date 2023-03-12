@@ -41,7 +41,7 @@ jobs:
         
       - name: Set up Ubuntu dependencies
         run:
-            apt install ant ant-optional openjdk-8-jdk openjdk-11-jdk openjdk-17-jdk
+            sudo apt install ant ant-optional openjdk-8-jdk openjdk-11-jdk openjdk-17-jdk
 
       - name: Set up NetBeans
         run:

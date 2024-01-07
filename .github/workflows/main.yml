@@ -1,0 +1,68 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+name: NetBeans Jackpot 3.0
+
+on:
+  push:
+  pull_request:
+    # unlocked event is used as super secret restart button
+    types: [opened, synchronize, unlocked]
+
+# cancel other PR workflow run in the same head-base group if it exists (e.g. during PR syncs)
+# if this is not a PR run (no github.head_ref and github.base_ref defined), use an UID as group
+concurrency: 
+  group: ${{ github.head_ref || github.run_id }}-${{ github.base_ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  base-build:
+    name: Build Jackpot 3.0
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+
+      - name: Checkout ${{ github.ref }} ( ${{ github.sha }} )
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Set up Ubuntu dependencies
+        run: |
+            sudo apt install openjdk-11-jdk openjdk-17-jdk openjdk-21-jdk
+
+      - name: Set up NetBeans
+        run: |
+            wget -q 'https://archive.apache.org/dist/netbeans/netbeans/20/netbeans-20-bin.zip' -O /tmp/netbeans-20-bin.zip
+            (cd $HOME; unzip /tmp/netbeans-20-bin.zip)
+
+      - name: Run RAT
+        run: |
+            echo $PWD
+            ls -la $PWD
+            (cd cmdline; ant -Dnbplatform.default.harness.dir=$HOME/netbeans/harness rat)
+
+      - name: Do build Jackpot
+        run: |
+            export JDK11=/usr/lib/jvm/java-11-openjdk-amd64
+            export JDK17=/usr/lib/jvm/java-17-openjdk-amd64
+            export JDK21=/usr/lib/jvm/java-21-openjdk-amd64
+            export JAVA_HOME=$JDK11
+            export PATH=$JAVA_HOME/bin:$PATH
+            (cd cmdline; ant -Dnbplatform.default.harness.dir=$HOME/netbeans/harness -DNETBEANS_PLATFORM=$HOME/netbeans -DJDK11=$JDK11 -DJDK17=$JDK17 -DJDK21=$JDK21 build-and-test)

@@ -42,6 +42,9 @@ import javax.tools.ToolProvider;
 import org.junit.runner.Result;
 import org.netbeans.junit.NbTestCase;
 import org.netbeans.modules.jackpot30.cmdline.lib.TestUtils;
+import org.netbeans.modules.parsing.api.ParserManager;
+import org.netbeans.modules.parsing.api.ResultIterator;
+import org.netbeans.modules.parsing.api.UserTask;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
 
@@ -1154,6 +1157,10 @@ public class MainTest extends NbTestCase {
         try {
             int actualExit = Main.compile(params);
             assertEquals(exitcode, actualExit);
+            ParserManager.parseWhenScanFinished("text/x-java", new UserTask() {
+                @Override
+                public void run(ResultIterator resultIterator) throws Exception {}
+            });
         } finally {
             System.setProperty("user.dir", oldUserDir);
             System.out.close();

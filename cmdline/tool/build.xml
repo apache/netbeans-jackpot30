@@ -112,14 +112,8 @@
     <target name="-setup.bootclasspath" depends="harness.build-init">
         <property name="test.nbjdk.home" location="${nbjdk.home}" />
         <!--<condition property="test.bootclasspath.prepend.args"-->
-        <condition property="test.run.args"
-                   value="--limit-modules=java.base,java.xml,java.prefs,java.management,java.logging,java.desktop,java.instrument,java.naming,jdk.zipfs --add-opens=java.base/java.net=ALL-UNNAMED"
-                   else="-Xbootclasspath/p:${nbplatform.active.dir}/java/modules/ext/nb-javac-jdk-17-api.jar:${nbplatform.active.dir}/java/modules/ext/nb-javac-jdk-17.jar">
-            <or>
-                <available classpath="${test.nbjdk.home}/lib/ct.sym" resource="B/java.base/java/lang/String.sig" />
-                <available classpath="${test.nbjdk.home}/lib/ct.sym" resource="B/system-modules" />
-            </or>
-        </condition>
+        <property name="test.run.args"
+                  value="--limit-modules=java.base,java.xml,java.prefs,java.management,java.logging,java.desktop,java.instrument,java.naming,jdk.zipfs --add-opens=java.base/java.net=ALL-UNNAMED" />
     </target>
 
 </project>

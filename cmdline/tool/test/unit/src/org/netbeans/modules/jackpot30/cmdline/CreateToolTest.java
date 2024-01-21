@@ -69,7 +69,9 @@ public class CreateToolTest extends MainTest {
             outCopy.start();
             errCopy.start();
 
-            assertEquals(exitcode, p.waitFor());
+            int actualExitCode = p.waitFor();
+
+            assertEquals(exitcode, actualExitCode);
 
             outCopy.doJoin();
             errCopy.doJoin();
@@ -180,7 +182,7 @@ public class CreateToolTest extends MainTest {
 //                }
             }
             protected void tearDown() {
-//                compiler.delete();
+                compiler.delete();
                 hintsList.delete();
                 compiler = null;
                 hintsList = null;

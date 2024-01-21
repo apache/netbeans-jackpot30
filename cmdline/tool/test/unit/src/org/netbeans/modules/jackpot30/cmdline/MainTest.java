@@ -1064,6 +1064,31 @@ public class MainTest extends NbTestCase {
                       "--source", "17");
     }
 
+    public void testRunBySuppressWarningsKeys() throws Exception {
+        String code =
+            "package test;\n" +
+            "public class Test {\n" +
+            "    private void test(java.util.Collection c) {\n" +
+            "        boolean b = c.size() == 0;\n" +
+            "        assert b = true;\n" +
+            "    }\n" +
+            "}\n";
+
+        doRunCompiler(code,
+                      "${workdir}/src/test/Test.java:4: warning: [Usage_of_Collection_Map_size_equals_0] c.size() == 0 can be replaced with c.isEmpty()\n" +
+                      "        boolean b = c.size() == 0;\n" +
+                      "                    ^\n" +
+                      "${workdir}/src/test/Test.java:5: warning: [Assert_with_side_effects] Assert condition produces side effects\n" +
+                      "        assert b = true;\n" +
+                      "               ^\n",
+                      "",
+                      "src/test/Test.java",
+                      code,
+                      null,
+                      "--hint",
+                      "SizeReplaceableByIsEmpty, AssertWithSideEffects");
+    }
+
     private static final String DONT_APPEND_PATH = new String("DONT_APPEND_PATH");
     private static final String IGNORE = new String("IGNORE");
 

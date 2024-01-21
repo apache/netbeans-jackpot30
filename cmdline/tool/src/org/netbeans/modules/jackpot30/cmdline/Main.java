@@ -784,11 +784,27 @@ public class Main {
         public abstract GroupResult join(GroupResult other);
     }
     
-    private static Iterable<? extends HintDescription> findHints(ClassPath sourceFrom, ClassPath binaryFrom, String name, HintsSettings toEnableIn) {
+    private static Iterable<? extends HintDescription> findHints(ClassPath sourceFrom, ClassPath binaryFrom, String hintSpecification, HintsSettings toEnableIn) {
         List<HintDescription> descs = new LinkedList<HintDescription>();
+        Map<HintMetadata, Collection<? extends HintDescription>> hints = listHints(sourceFrom, binaryFrom);
 
-        for (Entry<HintMetadata, Collection<? extends HintDescription>> e : listHints(sourceFrom, binaryFrom).entrySet()) {
-            if (e.getKey().displayName.equals(name)) {
+        for (Entry<HintMetadata, Collection<? extends HintDescription>> e : hints.entrySet()) {
+            if (e.getKey().displayName.equals(hintSpecification)) {
+                descs.addAll(e.getValue());
+                toEnableIn.setEnabled(e.getKey(), true);
+            }
+        }
+
+        if (!descs.isEmpty()) {
+            //found by hint display name, end:
+            return descs;
+        }
+
+        //interpret "hintSpecification" as a comma-separated list of @SuppressWarnings keys:
+        Set<String> keys = new HashSet<>(Arrays.asList(hintSpecification.split(", *")));
+
+        for (Entry<HintMetadata, Collection<? extends HintDescription>> e : hints.entrySet()) {
+            if (!Collections.disjoint(e.getKey().suppressWarnings, keys)) {
                 descs.addAll(e.getValue());
                 toEnableIn.setEnabled(e.getKey(), true);
             }
@@ -916,7 +932,27 @@ public class Main {
         Set<String> hints = new TreeSet<String>();
 
         for (Entry<HintMetadata, Collection<? extends HintDescription>> e : listHints(sourceFrom, binaryFrom).entrySet()) {
-            hints.add(e.getKey().displayName);
+            StringBuilder printText = new StringBuilder();
+
+            printText.append(e.getKey().displayName);
+
+            List<String> preferredKeys = new ArrayList<>();
+
+            for (String key : e.getKey().suppressWarnings) {
+                if (key == null || "".equals(key)) {
+                    //only print the preferred @SuppressWarnings keys:
+                    break;
+                }
+                preferredKeys.add(key);
+            }
+
+            if (preferredKeys.size() == 1) {
+                printText.append(", @SuppressWarnings key: ").append(preferredKeys.get(0));
+            } else if (preferredKeys.size() > 1) {
+                printText.append(", @SuppressWarnings key: ").append(preferredKeys.stream().collect(Collectors.joining(", ")));
+            }
+
+            hints.add(printText.toString());
         }
 
         for (String h : hints) {

@@ -29,13 +29,19 @@ import java.util.Collections;
 import java.util.List;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
+import java.util.stream.Collectors;
 import javax.swing.ComboBoxModel;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JList;
 import javax.swing.MutableComboBoxModel;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.event.ListDataEvent;
 import javax.swing.event.ListDataListener;
+import org.netbeans.api.java.classpath.ClassPath;
+import org.netbeans.api.java.queries.CompilerOptionsQuery;
+import org.netbeans.api.java.queries.CompilerOptionsQuery.Result;
 import org.openide.filesystems.FileObject;
 import org.openide.util.Exceptions;
 import org.openide.util.NbPreferences;
@@ -54,9 +60,17 @@ public class DecompileToolbar extends javax.swing.JPanel {
         
         DefaultComboBoxModel<CompilerDescription> compilerModel = new DefaultComboBoxModel<>();
         Collection<? extends CompilerDescription> compilerDescriptions = CompilerDescription.Factory.descriptions();
-        
+        ClassPath boot = ClassPath.getClassPath(originalSource, ClassPath.BOOT);
+        FileObject objectClass = boot != null ? boot.findResource("java/lang/Object.class") : null;
+        String objectClassURI = objectClass != null ? objectClass.toURI().toString() : null;
+        CompilerDescription defaultCompilerDescription = null;
+
         for (CompilerDescription cd : compilerDescriptions) {
             compilerModel.addElement(cd);
+            String currentCompilerObjectClass = cd.objectClassURI();
+            if (currentCompilerObjectClass != null && currentCompilerObjectClass.equals(objectClassURI)) {
+                defaultCompilerDescription = cd;
+            }
         }
         
         compiler.setModel(compilerModel);
@@ -84,7 +98,11 @@ public class DecompileToolbar extends javax.swing.JPanel {
         List<DecompilerDescription> decompilers = new ArrayList<>();
         
         if (compilerDescriptions.size() > 0) {
-            compiler.setSelectedIndex(0);
+            if (defaultCompilerDescription != null) {
+                compiler.setSelectedItem(defaultCompilerDescription);
+            } else {
+                compiler.setSelectedIndex(0);
+            }
             
             for (DecompilerDescription decompiler : DecompilerDescription.getDecompilers()) {
                 decompilerModel.addElement(decompiler);
@@ -109,36 +127,45 @@ public class DecompileToolbar extends javax.swing.JPanel {
             }
         });
         decompiler.setSelectedIndex(0);
-        extraOptions.setModel(createModel());
+        extraOptions.setModel(createModel(originalSource));
         Object extraParams = originalSource.getAttribute(DecompiledTab.PROP_EXTRA_PARAMS);
+        Object selectedExtraParams;
         if (extraParams instanceof String) {
-            try {
-                extraOptions.setSelectedItem(extraParams);
-                decompiled.setAttribute(DecompiledTab.PROP_EXTRA_PARAMS, extraParams);
-            } catch (IOException ex) {
-                Exceptions.printStackTrace(ex);
-            }
+            selectedExtraParams = extraParams;
+        } else {
+            selectedExtraParams = extraOptions.getItemAt(0);
+        }
+        extraOptions.setSelectedItem(selectedExtraParams);
+        try {
+            decompiled.setAttribute(DecompiledTab.PROP_EXTRA_PARAMS, selectedExtraParams);
+        } catch (IOException ex) {
+            Exceptions.printStackTrace(ex);
         }
         extraOptions.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
+                    boolean implicitItem = extraOptions.getSelectedIndex() == 0;
                     String selected = (String) extraOptions.getSelectedItem();
 
-                    masterModel.removeElement(selected);
-                    masterModel.insertElementAt(selected, 0);
+                    if (!implicitItem) {
+                        masterModel.removeElement(selected);
+                        masterModel.insertElementAt(selected, 0);
 
-                    while (masterModel.getSize() > HISTORY_LIMIT) {
-                        masterModel.removeElementAt(masterModel.getSize() - 1);
+                        while (masterModel.getSize() > HISTORY_LIMIT) {
+                            masterModel.removeElementAt(masterModel.getSize() - 1);
+                        }
+
+                        storeMasterData();
+
+                        originalSource.setAttribute(DecompiledTab.PROP_EXTRA_PARAMS, selected);
+                    } else {
+                        originalSource.setAttribute(DecompiledTab.PROP_EXTRA_PARAMS, null);
                     }
-
-                    storeMasterData();
 
                     extraOptions.getModel().setSelectedItem(selected); //the above changes the selection
 
                     decompiled.setAttribute(DecompiledTab.PROP_EXTRA_PARAMS, selected);
-                    originalSource.setAttribute(DecompiledTab.PROP_EXTRA_PARAMS, selected);
-
                 } catch (IOException ex) {
                     Exceptions.printStackTrace(ex);
                 }
@@ -156,7 +183,7 @@ public class DecompileToolbar extends javax.swing.JPanel {
         return prefs.node(KEY_EXTRA_PARAMS_HISTORY);
     }
 
-    private ComboBoxModel<String> createModel() {
+    private ComboBoxModel<String> createModel(FileObject file) {
         if (masterModel == null) {
             masterModel = new DefaultComboBoxModel<>();
 
@@ -174,7 +201,7 @@ public class DecompileToolbar extends javax.swing.JPanel {
             }
         }
 
-        return new DelegatingModel(masterModel);
+        return new DelegatingModel(file, masterModel);
     }
 
     private static void storeMasterData() {
@@ -262,11 +289,25 @@ public class DecompileToolbar extends javax.swing.JPanel {
         private final ComboBoxModel<String> master;
         private final List<ListDataListener> listeners = new ArrayList<>();
 
+        private final Result defaultExtraOptions;
+        private String defaultArgs;
         private Object selected;
 
-        public DelegatingModel(ComboBoxModel<String> master) {
+        public DelegatingModel(FileObject file, ComboBoxModel<String> master) {
+            this.defaultExtraOptions = CompilerOptionsQuery.getOptions(file);
+            this.defaultExtraOptions.addChangeListener(new ChangeListener() {
+                @Override
+                public void stateChanged(ChangeEvent e) {
+                    updateDefaultArgs();
+                }
+            });
+            updateDefaultArgs();
             this.master = master;
             this.master.addListDataListener(WeakListeners.create(ListDataListener.class, this, master));
+        }
+
+        private synchronized void updateDefaultArgs() {
+            this.defaultArgs = defaultExtraOptions.getArguments().stream().collect(Collectors.joining(" "));
         }
 
         @Override
@@ -286,12 +327,12 @@ public class DecompileToolbar extends javax.swing.JPanel {
 
         @Override
         public int getSize() {
-            return master.getSize();
+            return master.getSize() + 1;
         }
 
         @Override
         public String getElementAt(int index) {
-            return master.getElementAt(index);
+            return index == 0 ? defaultArgs : master.getElementAt(index - 1);
         }
 
         @Override

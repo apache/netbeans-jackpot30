@@ -24,6 +24,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.zip.GZIPInputStream;
 import javax.servlet.http.HttpServletRequest;
@@ -60,31 +64,62 @@ public class WebAppRepoPullRequests {
             page.append("Pull Requests of: " + repositoryName);
             page.append("<ul>");
             java.nio.file.Path targetDir = Config.getDefault().getRunDir().resolve("github").resolve(repositoryName);
+            List<String> prs = new ArrayList<>();
             try (DirectoryStream<java.nio.file.Path> ds = Files.newDirectoryStream(targetDir)) {
                 for (java.nio.file.Path p : ds) {
-                    String pr = p.getFileName().toString();
-                    page.append("<li>");
-                    page.append(pr);
-                    page.append("&nbsp;");
-                    if (Files.exists(p.resolve("preparing"))) {
-                        page.append("preparing");
-                    }
-                    if (Files.exists(p.resolve("running"))) {
-                        page.append("running");
-                    }
-                    if (Files.exists(p.resolve("finished"))) {
-                        page.append("finished");
-                    }
-                    if (Files.exists(p.resolve("stdout")) || Files.exists(p.resolve("stdout.gz"))) {
-                        page.append("<a href=\"/github/repopullrequests/stdout?repositoryName=" + repositoryName + "&pr=" + pr + "\">stdout</a>");
-                    }
-                    if (Files.exists(p.resolve("stderr")) || Files.exists(p.resolve("stderr.gz"))) {
-                        page.append("<a href=\"/github/repopullrequests/stderr?repositoryName=" + repositoryName + "&pr=" + pr + "\">stderr</a>");
-                    }
-                    page.append("</li>");
+                    prs.add(p.getFileName().toString());
                 }
             } catch (IOException ex) {
                 WebApp.LOG.log(Level.FINE, null, ex);
+            }
+            Collections.sort(prs);
+            for (String pr : prs) {
+                java.nio.file.Path p = targetDir.resolve(pr);
+                java.nio.file.Path buildInfo = p.resolve("info");
+                Properties infoProps = new Properties();
+                if (Files.isReadable(buildInfo)) {
+                    try (InputStream in = Files.newInputStream(buildInfo)) {
+                        infoProps.load(in);
+                    }
+                }
+                page.append("<li>Pull Request #");
+                page.append(pr);
+                page.append(": ");
+                page.append(infoProps.get("name"));
+                page.append(" by ");
+                page.append(infoProps.get("user"));
+                page.append("<ul>");
+                List<String> builds = new ArrayList<>();
+                try (DirectoryStream<java.nio.file.Path> buildStream = Files.newDirectoryStream(p)) {
+                    for (java.nio.file.Path b : buildStream) {
+                        if (!Files.isDirectory(b)) continue;
+                        builds.add(b.getFileName().toString());
+                    }
+                }
+                Collections.sort(builds);
+                for (String build : builds) {
+                    java.nio.file.Path b = p.resolve(build);
+                    page.append("<li>Build #");
+                    page.append(build);
+                    page.append("&nbsp;");
+                    if (Files.exists(b.resolve("preparing"))) {
+                        page.append("preparing");
+                    }
+                    if (Files.exists(b.resolve("running"))) {
+                        page.append("running");
+                    }
+                    if (Files.exists(b.resolve("finished"))) {
+                        page.append("finished");
+                    }
+                    if (Files.exists(b.resolve("stdout")) || Files.exists(b.resolve("stdout.gz"))) {
+                        page.append("<a href=\"/github/repopullrequests/stdout?repositoryName=" + repositoryName + "&pr=" + pr + "&build=" + build + "\">stdout</a>");
+                    }
+                    if (Files.exists(b.resolve("stderr")) || Files.exists(b.resolve("stderr.gz"))) {
+                        page.append("<a href=\"/github/repopullrequests/stderr?repositoryName=" + repositoryName + "&pr=" + pr + "&build=" + build + "\">stderr</a>");
+                    }
+                }
+                page.append("</ul>");
+                page.append("</li>");
             }
             page.append("</ul>");
             page.append("</body>");
@@ -100,17 +135,17 @@ public class WebAppRepoPullRequests {
 
     @GET
     @Path("/stdout")
-    public static Response stdout(@Context HttpServletRequest request, @QueryParam("repositoryName") String repositoryName, @QueryParam("pr") String pr) throws IOException {
-        return log(request, repositoryName, pr, "stdout");
+    public static Response stdout(@Context HttpServletRequest request, @QueryParam("repositoryName") String repositoryName, @QueryParam("pr") String pr, @QueryParam("build") String build) throws IOException {
+        return log(request, repositoryName, pr, build, "stdout");
     }
 
     @GET
     @Path("/stderr")
-    public static Response stderr(@Context HttpServletRequest request, @QueryParam("repositoryName") String repositoryName, @QueryParam("pr") String pr) throws IOException {
-        return log(request, repositoryName, pr, "stderr");
+    public static Response stderr(@Context HttpServletRequest request, @QueryParam("repositoryName") String repositoryName, @QueryParam("pr") String pr, @QueryParam("build") String build) throws IOException {
+        return log(request, repositoryName, pr, build, "stderr");
     }
 
-    private static Response log(HttpServletRequest request, String repositoryName, String pr, String log) throws IOException {
+    private static Response log(HttpServletRequest request, String repositoryName, String pr, String build, String log) throws IOException {
         String userName = (String) request.getSession().getAttribute("user_name");
         if (userName != null) {
             if (repositoryName.startsWith(userName + "/")) {
@@ -124,11 +159,11 @@ public class WebAppRepoPullRequests {
             class StreamingOutputImpl implements StreamingOutput {
                 @Override
                 public void write(OutputStream out) throws IOException, WebApplicationException {
-                    java.nio.file.Path logFile = Config.getDefault().getRunDir().resolve("github").resolve(repositoryName).resolve(pr).resolve(log);
+                    java.nio.file.Path logFile = Config.getDefault().getRunDir().resolve("github").resolve(repositoryName).resolve(pr).resolve(build).resolve(log);
                     try (InputStream in = Files.newInputStream(logFile)) {
                         in.transferTo(out);
                     } catch (IOException ex) {
-                        java.nio.file.Path logFileGZ = Config.getDefault().getRunDir().resolve("github").resolve(repositoryName).resolve(pr).resolve(log + ".gz");
+                        java.nio.file.Path logFileGZ = Config.getDefault().getRunDir().resolve("github").resolve(repositoryName).resolve(pr).resolve(build).resolve(log + ".gz");
                         try (InputStream in = new GZIPInputStream(Files.newInputStream(logFileGZ))) {
                             in.transferTo(out);
                         }

@@ -23,8 +23,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.prefs.Preferences;
 import java.util.zip.GZIPOutputStream;
@@ -44,7 +48,7 @@ public class WebAppNotify {
     public static void webhook(String data) throws IOException {
         Map<String, Object> inputParsed = new ObjectMapper().readValue(data, Map.class);
         Object action = inputParsed.get("action");
-        if (!"opened".equals(action))
+        if (!"opened".equals(action) && !"synchronize".equals(action))
             return ;
         Map<String, Object> pullRequest = (Map<String, Object>) inputParsed.get("pull_request");
         if (pullRequest == null) {
@@ -59,6 +63,9 @@ public class WebAppNotify {
         if (!repositories.getBoolean(userAndRepo[1], false)) {
             return ;
         }
+        String prName = (String) pullRequest.getOrDefault("title", "");
+        String prUser = (String) ((Map<String, Object>) pullRequest.getOrDefault("user", Collections.emptyMap())).getOrDefault("login", "");
+        String prURL = (String) pullRequest.getOrDefault("url", "");
         Preferences handlerPrefs = Config.getDefault().getPreferences().node("handler");
         String handler = handlerPrefs.get("handler", "handler.local");
         String remoteHost = handlerPrefs.get("remoteHost", null);
@@ -74,7 +81,29 @@ public class WebAppNotify {
         builder.environment().put("OAUTH_TOKEN", Config.getDefault().getPreferences().node("users").node(userAndRepo[0]).get("access_token", ""));
         builder.environment().put("OAUTH_APP_TOKEN", Config.getDefault().getPreferences().node("app").get("access_token", ""));
         java.nio.file.Path targetDir = Config.getDefault().getRunDir().resolve("github").resolve((String) repository.get("full_name"));
-        java.nio.file.Path thisRunDir = targetDir.resolve(String.valueOf((Integer) pullRequest.get("number")));
+        java.nio.file.Path thisPRDir = targetDir.resolve(String.valueOf((Integer) pullRequest.get("number")));
+        java.nio.file.Path buildInfo = thisPRDir.resolve("info");
+        Properties infoProps = new Properties();
+        if (Files.isReadable(buildInfo)) {
+            try (InputStream in = Files.newInputStream(buildInfo)) {
+                infoProps.load(in);
+            }
+        }
+        int buildNumber = 1;
+        try {
+            buildNumber = Integer.parseInt(infoProps.getProperty("nextBuild", "1"));
+        } catch (IllegalArgumentException ex) {
+            //ignore
+        }
+        infoProps.setProperty("nextBuild", String.valueOf(buildNumber + 1));
+        infoProps.setProperty("name", prName);
+        infoProps.setProperty("user", prUser);
+        infoProps.setProperty("url", prURL);
+        Files.createDirectories(buildInfo.getParent());
+        try (OutputStream out = Files.newOutputStream(buildInfo)) {
+            infoProps.store(out, "");
+        }
+        java.nio.file.Path thisRunDir = thisPRDir.resolve(String.valueOf(buildNumber));
         Files.createDirectories(thisRunDir);
         Files.deleteIfExists(thisRunDir.resolve("finished"));
         Files.newOutputStream(thisRunDir.resolve("preparing")).close();

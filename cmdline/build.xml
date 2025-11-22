@@ -52,7 +52,7 @@
     </target>
 
     <target name="build-and-test">
-        <property name="version" value="20.0" />
+        <property name="version" value="28.0" />
         <condition property="jackpot.root" value="${basedir}" else="${basedir}/..">
             <available file="${basedir}/LICENSE" />
         </condition>
@@ -62,13 +62,6 @@
             <property name="jackpot.root" location="${jackpot.root}" />
             <target name="clean" />
             <target name="build" />
-        </ant>
-        <ant dir="${basedir}" inheritAll="false" inheritRefs="false">
-            <property name="nbplatform.default.harness.dir" value="${NETBEANS_PLATFORM}/harness" />
-            <property name="nbplatform.default.netbeans.dest.dir" value="${NETBEANS_PLATFORM}" />
-            <property name="test.nbjdk.home" value="${JDK11}" />
-            <property name="jackpot.root" location="${jackpot.root}" />
-            <target name="test" />
         </ant>
         <ant dir="${basedir}" inheritAll="false" inheritRefs="false">
             <property name="nbplatform.default.harness.dir" value="${NETBEANS_PLATFORM}/harness" />
@@ -84,6 +77,13 @@
             <property name="jackpot.root" location="${jackpot.root}" />
             <target name="test" />
         </ant>
+        <ant dir="${basedir}" inheritAll="false" inheritRefs="false">
+            <property name="nbplatform.default.harness.dir" value="${NETBEANS_PLATFORM}/harness" />
+            <property name="nbplatform.default.netbeans.dest.dir" value="${NETBEANS_PLATFORM}" />
+            <property name="test.nbjdk.home" value="${JDK25}" />
+            <property name="jackpot.root" location="${jackpot.root}" />
+            <target name="test" />
+        </ant>
         <ant dir="${basedir}/tool" target="create-standalone-tool" inheritAll="false" inheritRefs="false">
             <property name="nbplatform.default.harness.dir" value="${NETBEANS_PLATFORM}/harness" />
             <property name="nbplatform.default.netbeans.dest.dir" value="${NETBEANS_PLATFORM}" />
@@ -94,16 +94,16 @@
         <exec executable="build/test/scripted/run" dir="tool" failonerror="true">
         </exec>
         <exec executable="build/test/scripted/run" dir="tool" failonerror="true">
-            <env key="JAVA_HOME" path="${JDK11}" />
-            <env key="PATH" path="${JDK11}/bin:${env.PATH}" />
-        </exec>
-        <exec executable="build/test/scripted/run" dir="tool" failonerror="true">
             <env key="JAVA_HOME" path="${JDK17}" />
             <env key="PATH" path="${JDK17}/bin:${env.PATH}" />
         </exec>
         <exec executable="build/test/scripted/run" dir="tool" failonerror="true">
             <env key="JAVA_HOME" path="${JDK21}" />
             <env key="PATH" path="${JDK21}/bin:${env.PATH}" />
+        </exec>
+        <exec executable="build/test/scripted/run" dir="tool" failonerror="true">
+            <env key="JAVA_HOME" path="${JDK25}" />
+            <env key="PATH" path="${JDK25}/bin:${env.PATH}" />
         </exec>
         <echo>Installing tool to the local maven repository:</echo>
         <exec dir="." executable="mvn" failonerror="true">

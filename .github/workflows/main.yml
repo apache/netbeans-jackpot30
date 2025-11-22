@@ -49,7 +49,7 @@ jobs:
             sudo apt install openjdk-17-jdk openjdk-21-jdk
 
       - name: Set up latest JDK 25 from jdk.java.net
-        uses: oracle-actions/setup-java@b1546e588c27008e88bfcabda44d11c22316b9b8 # v1.4.2
+        uses: oracle-actions/setup-java@fff43251af9936a0e6a4d5d0946e14f1680e9b6b # v1.5.0
         with:
             website: jdk.java.net
             release: 25

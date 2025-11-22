@@ -52,7 +52,7 @@
     </target>
 
     <target name="build-and-test">
-        <property name="version" value="20.0" />
+        <property name="version" value="28.0" />
         <condition property="jackpot.root" value="${basedir}" else="${basedir}/..">
             <available file="${basedir}/LICENSE" />
         </condition>
@@ -80,7 +80,7 @@
         <ant dir="${basedir}" inheritAll="false" inheritRefs="false">
             <property name="nbplatform.default.harness.dir" value="${NETBEANS_PLATFORM}/harness" />
             <property name="nbplatform.default.netbeans.dest.dir" value="${NETBEANS_PLATFORM}" />
-            <property name="test.nbjdk.home" value="${JDK24}" />
+            <property name="test.nbjdk.home" value="${JDK25}" />
             <property name="jackpot.root" location="${jackpot.root}" />
             <target name="test" />
         </ant>
@@ -102,8 +102,8 @@
             <env key="PATH" path="${JDK21}/bin:${env.PATH}" />
         </exec>
         <exec executable="build/test/scripted/run" dir="tool" failonerror="true">
-            <env key="JAVA_HOME" path="${JDK24}" />
-            <env key="PATH" path="${JDK24}/bin:${env.PATH}" />
+            <env key="JAVA_HOME" path="${JDK25}" />
+            <env key="PATH" path="${JDK25}/bin:${env.PATH}" />
         </exec>
         <echo>Installing tool to the local maven repository:</echo>
         <exec dir="." executable="mvn" failonerror="true">

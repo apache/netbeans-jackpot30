@@ -48,16 +48,16 @@ jobs:
             sudo apt update
             sudo apt install openjdk-17-jdk openjdk-21-jdk
 
-      - name: Set up latest JDK 24 from jdk.java.net
+      - name: Set up latest JDK 25 from jdk.java.net
         uses: oracle-actions/setup-java@b1546e588c27008e88bfcabda44d11c22316b9b8 # v1.4.2
         with:
             website: jdk.java.net
-            release: 24
+            release: 25
 
       - name: Set up NetBeans
         run: |
-            wget -q 'https://archive.apache.org/dist/netbeans/netbeans/27/netbeans-27-bin.zip' -O /tmp/netbeans-27-bin.zip
-            (cd $HOME; unzip /tmp/netbeans-27-bin.zip)
+            wget -q 'https://archive.apache.org/dist/netbeans/netbeans/28/netbeans-28-bin.zip' -O /tmp/netbeans-28-bin.zip
+            (cd $HOME; unzip /tmp/netbeans-28-bin.zip)
 
       - name: Run RAT
         run: |
@@ -69,7 +69,7 @@ jobs:
         run: |
             export JDK17=/usr/lib/jvm/java-17-openjdk-amd64
             export JDK21=/usr/lib/jvm/java-21-openjdk-amd64
-            export JDK24=$JAVA_HOME
+            export JDK25=$JAVA_HOME
             export JAVA_HOME=$JDK17
             export PATH=$JAVA_HOME/bin:$PATH
-            (cd cmdline; ant -Dnbplatform.default.harness.dir=$HOME/netbeans/harness -DNETBEANS_PLATFORM=$HOME/netbeans -DJDK17=$JDK17 -DJDK21=$JDK21 -DJDK24=$JDK24 build-and-test)
+            (cd cmdline; ant -Dnbplatform.default.harness.dir=$HOME/netbeans/harness -DNETBEANS_PLATFORM=$HOME/netbeans -DJDK17=$JDK17 -DJDK21=$JDK21 -DJDK25=$JDK25 build-and-test)

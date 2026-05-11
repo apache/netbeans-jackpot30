@@ -30,7 +30,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -38,6 +42,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.tools.SimpleJavaFileObject;
+import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 import org.junit.runner.Result;
 import org.netbeans.junit.NbTestCase;
@@ -55,6 +60,7 @@ import org.openide.filesystems.FileUtil;
 public class MainTest extends NbTestCase {
 
     private static final String TEST_HINT = "Usage of [Collection|Map].size() == 0";
+    private static final String BASE_64_PREFIX = "BASE64: ";
 
     public MainTest(String name) {
         super(name);
@@ -1064,6 +1070,147 @@ public class MainTest extends NbTestCase {
                       "--source", "17");
     }
 
+    public void testModulePath() throws Exception {
+        clearWorkDir();
+
+        List<File> maFiles = List.of(
+            writeToPath("src/ma/module-info.java",
+                        """
+                        module ma {
+                            exports api;
+                        }
+                        """),
+            writeToPath("src/ma/api/Api.java",
+                        """
+                        package api;
+                        import java.util.Collection;
+                        public class Api {
+                            public static Collection<String> get() {
+                                return null;
+                            }
+                        }
+                        """),
+            writeToPath("src/ma/impl/Impl.java",
+                        """
+                        package impl;
+                        import java.util.Collection;
+                        public class Impl {
+                            public static Collection<String> get() {
+                                return null;
+                            }
+                        }
+                        """));
+        File classesOutput = new File(getWorkDir(), "classes/ma");
+
+        classesOutput.getParentFile().mkdirs();
+
+        try (StandardJavaFileManager fm =
+                ToolProvider.getSystemJavaCompiler()
+                            .getStandardFileManager(null, null, null)) {
+            Boolean compilationResult =
+                ToolProvider.getSystemJavaCompiler()
+                            .getTask(null, null, null, List.of("-d", classesOutput.getAbsolutePath()), null,
+                                     fm.getJavaFileObjectsFromFiles(maFiles))
+                            .call();
+            if (compilationResult == null || !compilationResult) {
+                throw new AssertionError("Cannot compile the module!");
+            }
+        }
+
+        String golden =
+            """
+            package test;
+            import api.Api;
+            import impl.Impl;
+            public class Test {
+                private void test() {
+                    boolean b1 = Api.get().isEmpty();
+                    boolean b2 = Impl.get().isEmpty();
+                }
+            }
+            """;
+
+        List<String> filesAndOptions = new ArrayList<>();
+
+        filesAndOptions.add("src/test/Test.java");
+        filesAndOptions.add("""
+                            package test;
+                            import api.Api;
+                            import impl.Impl;
+                            public class Test {
+                                private void test() {
+                                    boolean b1 = Api.get().size() == 0;
+                                    boolean b2 = Impl.get().size() == 0;
+                                }
+                            }
+                            """);
+        filesAndOptions.addAll(listFiles(classesOutput));
+        filesAndOptions.add(null);
+        filesAndOptions.add("--apply");
+        filesAndOptions.add("--hint");
+        filesAndOptions.add(TEST_HINT);
+        filesAndOptions.add("--source"); filesAndOptions.add("17");
+        filesAndOptions.add("--module-path"); filesAndOptions.add(classesOutput.getAbsolutePath());
+        filesAndOptions.add("--add-modules"); filesAndOptions.add("ma");
+        filesAndOptions.add("--add-exports"); filesAndOptions.add("ma/impl=ALL-UNNAMED");
+
+        doRunCompiler(golden,
+                      null,
+                      null,
+                      filesAndOptions.toArray(String[]::new));
+    }
+
+    public void testLimitModules() throws Exception {
+        clearWorkDir();
+
+        String golden =
+            """
+            package test;
+            import com.sun.tools.javac.*;
+            public class Test {
+                private boolean test() {
+                    return Main2.test().isEmpty();
+                }
+            }
+            """;
+
+        List<String> filesAndOptions = new ArrayList<>();
+
+        filesAndOptions.add("src/test/Test.java");
+        filesAndOptions.add("""
+                            package test;
+                            import com.sun.tools.javac.*;
+                            public class Test {
+                                private boolean test() {
+                                    return Main2.test().size() == 0;
+                                }
+                            }
+                            """);
+        filesAndOptions.add("src/com/sun/tools/javac/Main2.java");
+        filesAndOptions.add("""
+                            package com.sun.tools.javac;
+                            import java.util.List;
+                            public class Main2 {
+                                public static List<String> test() {
+                                    return List.of();
+                                }
+                            }
+                            """);
+        filesAndOptions.add(null);
+        filesAndOptions.add(DONT_APPEND_PATH);
+        filesAndOptions.add("--apply");
+        filesAndOptions.add("--hint");
+        filesAndOptions.add(TEST_HINT);
+        filesAndOptions.add("--source"); filesAndOptions.add("17");
+        filesAndOptions.add("--limit-modules"); filesAndOptions.add("java.base");
+        filesAndOptions.add("${workdir}/src");
+
+        doRunCompiler(golden,
+                      null,
+                      null,
+                      filesAndOptions.toArray(String[]::new));
+    }
+
     private static final String DONT_APPEND_PATH = new String("DONT_APPEND_PATH");
     private static final String IGNORE = new String("IGNORE");
 
@@ -1094,11 +1241,7 @@ public class MainTest extends NbTestCase {
         clearWorkDir();
 
         for (int cntr = 0; cntr < fileAndContent.size(); cntr += 2) {
-            File target = new File(getWorkDir(), fileAndContent.get(cntr));
-
-            target.getParentFile().mkdirs();
-            
-            TestUtils.copyStringToFile(target, fileAndContent.get(cntr + 1));
+            writeToPath(fileAndContent.get(cntr), fileAndContent.get(cntr + 1));
         }
 
         File wd = getWorkDir();
@@ -1264,6 +1407,38 @@ public class MainTest extends NbTestCase {
                 assertEquals(expected, content);
             }
         };
+    }
+
+    private File writeToPath(String relativePath, String content) throws Exception {
+        File target = new File(getWorkDir(), relativePath);
+
+        target.getParentFile().mkdirs();
+
+        if (content.startsWith(BASE_64_PREFIX)) {
+            Files.write(target.toPath(), Base64.getDecoder().decode(content.substring(BASE_64_PREFIX.length())));
+        } else {
+            TestUtils.copyStringToFile(target, content);
+        }
+
+        return target;
+    }
+
+    private List<String> listFiles(File directory) throws IOException {
+        Path base = getWorkDir().toPath();
+        List<String> result = new ArrayList<>();
+
+        Files.walk(directory.toPath())
+             .filter(Files::isRegularFile)
+             .forEach(p -> {
+                 try {
+                     result.add(base.relativize(p).toString());
+                     result.add(BASE_64_PREFIX + Base64.getEncoder().encodeToString(Files.readAllBytes(p)));
+                 } catch (IOException ex) {
+                     throw new IllegalStateException(ex);
+                 }
+             });
+
+        return result;
     }
 
     private static interface Validator {

@@ -68,6 +68,7 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.netbeans.api.actions.Savable;
 import org.netbeans.api.java.classpath.ClassPath;
+import org.netbeans.api.java.classpath.JavaClassPathConstants;
 import org.netbeans.api.java.source.CompilationController;
 import org.netbeans.api.java.source.ModificationResult;
 import org.netbeans.modules.editor.tools.storage.api.ToolPreferences;
@@ -108,6 +109,7 @@ import org.netbeans.spi.java.classpath.ClassPathProvider;
 import org.netbeans.spi.java.classpath.support.ClassPathSupport;
 import org.netbeans.spi.java.hints.Hint.Kind;
 import org.netbeans.spi.java.hints.HintContext;
+import org.netbeans.spi.java.queries.CompilerOptionsQueryImplementation;
 import org.netbeans.spi.java.queries.SourceLevelQueryImplementation2;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
@@ -408,20 +410,43 @@ public class Main {
         return new GroupOptions(parser.accepts("classpath", "classpath").withRequiredArg().withValuesSeparatedBy(File.pathSeparatorChar).ofType(File.class),
                                 parser.accepts("bootclasspath", "bootclasspath").withRequiredArg().withValuesSeparatedBy(File.pathSeparatorChar).ofType(File.class),
                                 parser.accepts("sourcepath", "sourcepath").withRequiredArg().withValuesSeparatedBy(File.pathSeparatorChar).ofType(File.class),
-                                parser.accepts("source", "source level").withRequiredArg().ofType(String.class).defaultsTo(SOURCE_LEVEL_DEFAULT));
+                                parser.accepts("add-exports", "javac's addd-exports option").withRequiredArg().ofType(String.class),
+                                parser.accepts("add-modules", "javac's add-modules option").withRequiredArg().ofType(String.class),
+                                parser.accepts("limit-modules", "javac's limit-modules option").withRequiredArg().ofType(String.class),
+                                parser.accepts("module-path", "module path").withRequiredArg().withValuesSeparatedBy(File.pathSeparatorChar).ofType(File.class),
+                                parser.accepts("source", "source level").withRequiredArg().ofType(String.class).defaultsTo(SOURCE_LEVEL_DEFAULT),
+                                parser.accepts("system", "system modules").withRequiredArg().ofType(File.class));
     }
 
     private static final class GroupOptions {
         private final ArgumentAcceptingOptionSpec<File> classpath;
         private final ArgumentAcceptingOptionSpec<File> bootclasspath;
         private final ArgumentAcceptingOptionSpec<File> sourcepath;
+        private final ArgumentAcceptingOptionSpec<String> addExports;
+        private final ArgumentAcceptingOptionSpec<String> addModules;
+        private final ArgumentAcceptingOptionSpec<String> limitModules;
+        private final ArgumentAcceptingOptionSpec<File> modulePath;
         private final ArgumentAcceptingOptionSpec<String> source;
+        private final ArgumentAcceptingOptionSpec<File> system;
 
-        public GroupOptions(ArgumentAcceptingOptionSpec<File> classpath, ArgumentAcceptingOptionSpec<File> bootclasspath, ArgumentAcceptingOptionSpec<File> sourcepath, ArgumentAcceptingOptionSpec<String> source) {
+        public GroupOptions(ArgumentAcceptingOptionSpec<File> classpath,
+                            ArgumentAcceptingOptionSpec<File> bootclasspath,
+                            ArgumentAcceptingOptionSpec<File> sourcepath,
+                            ArgumentAcceptingOptionSpec<String> addExports,
+                            ArgumentAcceptingOptionSpec<String> addModules,
+                            ArgumentAcceptingOptionSpec<String> limitModules,
+                            ArgumentAcceptingOptionSpec<File> modulePath,
+                            ArgumentAcceptingOptionSpec<String> source,
+                            ArgumentAcceptingOptionSpec<File> system) {
             this.classpath = classpath;
             this.bootclasspath = bootclasspath;
             this.sourcepath = sourcepath;
+            this.limitModules = limitModules;
+            this.modulePath = modulePath;
             this.source = source;
+            this.addExports = addExports;
+            this.addModules = addModules;
+            this.system = system;
         }
 
     }
@@ -1008,9 +1033,14 @@ public class Main {
     private static final class RootConfiguration {
         private final List<Folder> rootFolders;
         private final ClassPath bootCP;
+        private final ClassPath systemCP;
         private final ClassPath compileCP;
+        private final ClassPath modulePathCP;
         private final ClassPath sourceCP;
         private final ClassPath binaryCP;
+        private final String    addExports;
+        private final String    addModules;
+        private final String    limitModules;
         private final String    sourceLevel;
 
         public RootConfiguration(OptionSet parsed, GroupOptions groupOptions) throws IOException {
@@ -1029,9 +1059,14 @@ public class Main {
             }
 
             this.bootCP = createClassPath(parsed.has(groupOptions.bootclasspath) ? parsed.valuesOf(groupOptions.bootclasspath) : null, Utils.createDefaultBootClassPath());
+            this.systemCP = createClassPath(parsed.has(groupOptions.system) ? parsed.valuesOf(groupOptions.bootclasspath) : null, null); //XXX: this needs to be a JRTFS!
             this.compileCP = createClassPath(parsed.has(groupOptions.classpath) ? parsed.valuesOf(groupOptions.classpath) : null, ClassPath.EMPTY);
+            this.modulePathCP = createClassPath(parsed.has(groupOptions.modulePath) ? parsed.valuesOf(groupOptions.modulePath) : null, ClassPath.EMPTY); //XXX: expand directories(?)
             this.sourceCP = createClassPath(parsed.has(groupOptions.sourcepath) ? parsed.valuesOf(groupOptions.sourcepath) : null, ClassPathSupport.createClassPath(roots.toArray(new FileObject[0])));
-            this.binaryCP = ClassPathSupport.createProxyClassPath(bootCP, compileCP);
+            this.binaryCP = ClassPathSupport.createProxyClassPath(bootCP, compileCP, systemCP, modulePathCP);
+            this.addExports = parsed.has(groupOptions.addExports) ? parsed.valueOf(groupOptions.addExports) : null;
+            this.addModules = parsed.has(groupOptions.addModules) ? parsed.valueOf(groupOptions.addModules) : null;;
+            this.limitModules = parsed.has(groupOptions.limitModules) ? parsed.valueOf(groupOptions.limitModules) : null;;
             this.sourceLevel = parsed.valueOf(groupOptions.source);
         }
 
@@ -1088,14 +1123,62 @@ public class Main {
             if (rootConfiguration.sourceCP.findOwnerRoot(file) != null) {
                 if (ClassPath.BOOT.equals(type)) {
                     return rootConfiguration.bootCP;
+                } else if (JavaClassPathConstants.MODULE_BOOT_PATH.equals(type)) {
+                    return rootConfiguration.systemCP;
                 } else if (ClassPath.COMPILE.equals(type)) {
                     return rootConfiguration.compileCP;
+                } else if (JavaClassPathConstants.MODULE_COMPILE_PATH.equals(type)) {
+                    return rootConfiguration.modulePathCP;
                 } else  if (ClassPath.SOURCE.equals(type)) {
                     return rootConfiguration.sourceCP;
                 }
             }
 
             return null;
+        }
+    }
+
+    @ServiceProvider(service=CompilerOptionsQueryImplementation.class, position=100)
+    public static final class CompilerOptionsQueryImpl implements CompilerOptionsQueryImplementation {
+        private final Result result = new Result() {
+            @Override
+            public List<? extends String> getArguments() {
+                RootConfiguration rootConfiguration = currentRootConfiguration.get();
+
+                if (rootConfiguration == null) {
+                    return List.of();
+                }
+
+                List<String> result = new ArrayList<>();
+
+                if (rootConfiguration.addModules != null) {
+                    result.add("--add-modules");
+                    result.add(rootConfiguration.addModules);
+                }
+
+                if (rootConfiguration.limitModules != null) {
+                    result.add("--limit-modules");
+                    result.add(rootConfiguration.limitModules);
+                }
+
+                if (rootConfiguration.addExports != null) {
+                    result.add("--add-exports");
+                    result.add(rootConfiguration.addExports);
+                }
+
+                return result;
+            }
+            @Override
+            public void addChangeListener(ChangeListener cl) {
+            }
+            @Override
+            public void removeChangeListener(ChangeListener cl) {
+            }
+        };
+
+        @Override
+        public Result getOptions(FileObject fo) {
+            return result;
         }
     }
 

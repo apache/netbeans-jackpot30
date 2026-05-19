@@ -1273,14 +1273,20 @@ public class MainTest extends NbTestCase {
 
         reallyRunCompiler(wd, exitcode, output, options.toArray(new String[0]));
 
-        if (fileContentValidator != null) {
-            fileContentValidator.validate(TestUtils.copyFileToString(source));
-        }
-        if (stdOutValidator != null) {
-            stdOutValidator.validate(output[0].replaceAll(Pattern.quote(wd.getAbsolutePath()), Matcher.quoteReplacement("${workdir}")));
-        }
-        if (stdErrValidator != null) {
-            stdErrValidator.validate(output[1].replaceAll(Pattern.quote(wd.getAbsolutePath()), Matcher.quoteReplacement("${workdir}")));
+        try {
+            if (fileContentValidator != null) {
+                fileContentValidator.validate(TestUtils.copyFileToString(source));
+            }
+            if (stdOutValidator != null) {
+                stdOutValidator.validate(output[0].replaceAll(Pattern.quote(wd.getAbsolutePath()), Matcher.quoteReplacement("${workdir}")));
+            }
+            if (stdErrValidator != null) {
+                stdErrValidator.validate(output[1].replaceAll(Pattern.quote(wd.getAbsolutePath()), Matcher.quoteReplacement("${workdir}")));
+            }
+        } catch (Throwable t) {
+            System.err.println(output[0]);
+            System.err.println(output[1]);
+            throw t;
         }
     }
 

@@ -37,6 +37,7 @@ import java.io.Writer;
 import java.lang.Runtime.Version;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -98,6 +99,8 @@ import org.netbeans.modules.java.hints.spiimpl.batch.ProgressHandleWrapper;
 import org.netbeans.modules.java.hints.spiimpl.batch.ProgressHandleWrapper.ProgressHandleAbstraction;
 import org.netbeans.modules.java.hints.spiimpl.batch.Scopes;
 import org.netbeans.modules.java.hints.spiimpl.options.HintsSettings;
+import org.netbeans.modules.java.j2seplatform.platformdefinition.Util;
+import org.netbeans.modules.java.source.parsing.JavacParser;
 import org.netbeans.modules.parsing.impl.indexing.CacheFolder;
 import org.netbeans.modules.parsing.impl.indexing.RepositoryUpdater;
 import org.netbeans.modules.refactoring.spi.RefactoringElementImplementation;
@@ -1038,7 +1041,7 @@ public class Main {
         private final ClassPath modulePathCP;
         private final ClassPath sourceCP;
         private final ClassPath binaryCP;
-        private final String    addExports;
+        private final List<String> addExports;
         private final String    addModules;
         private final String    limitModules;
         private final String    sourceLevel;
@@ -1059,17 +1062,50 @@ public class Main {
             }
 
             this.bootCP = createClassPath(parsed.has(groupOptions.bootclasspath) ? parsed.valuesOf(groupOptions.bootclasspath) : null, Utils.createDefaultBootClassPath());
-            this.systemCP = createClassPath(parsed.has(groupOptions.system) ? parsed.valuesOf(groupOptions.bootclasspath) : null, null); //XXX: this needs to be a JRTFS!
+            this.systemCP = parsed.has(groupOptions.system) ? systemPath(parsed.valueOf(groupOptions.system)) : Utils.createDefaultBootClassPath();
             this.compileCP = createClassPath(parsed.has(groupOptions.classpath) ? parsed.valuesOf(groupOptions.classpath) : null, ClassPath.EMPTY);
-            this.modulePathCP = createClassPath(parsed.has(groupOptions.modulePath) ? parsed.valuesOf(groupOptions.modulePath) : null, ClassPath.EMPTY); //XXX: expand directories(?)
+            if (parsed.has(groupOptions.modulePath)) {
+                this.modulePathCP = createClassPath(expandModulePathEntries(parsed.valuesOf(groupOptions.modulePath)), ClassPath.EMPTY);
+            } else {
+                this.modulePathCP = ClassPath.EMPTY;
+            }
             this.sourceCP = createClassPath(parsed.has(groupOptions.sourcepath) ? parsed.valuesOf(groupOptions.sourcepath) : null, ClassPathSupport.createClassPath(roots.toArray(new FileObject[0])));
             this.binaryCP = ClassPathSupport.createProxyClassPath(bootCP, compileCP, systemCP, modulePathCP);
-            this.addExports = parsed.has(groupOptions.addExports) ? parsed.valueOf(groupOptions.addExports) : null;
+            this.addExports = parsed.has(groupOptions.addExports) ? parsed.valuesOf(groupOptions.addExports) : null; //TOOD: test check multiple(!!)
             this.addModules = parsed.has(groupOptions.addModules) ? parsed.valueOf(groupOptions.addModules) : null;;
             this.limitModules = parsed.has(groupOptions.limitModules) ? parsed.valueOf(groupOptions.limitModules) : null;;
             this.sourceLevel = parsed.valueOf(groupOptions.source);
         }
 
+        private ClassPath systemPath(File system) throws IOException {
+            try {
+                Method createModulePath = Util.class.getDeclaredMethod("createModulePath", Collection.class);
+                createModulePath.setAccessible(true);
+                return (ClassPath) createModulePath.invoke(null, List.of(FileUtil.toFileObject(system)));
+            } catch (ReflectiveOperationException ex) {
+                throw new IllegalStateException(ex);
+            }
+        }
+
+        private List<File> expandModulePathEntries(Iterable<? extends File> modulePathEntries) {
+            List<File> expandedModulePath = new ArrayList<>();
+
+            for (File entry : modulePathEntries) {
+                if (entry.isFile()) {
+                    expandedModulePath.add(entry);
+                } else if (new File(entry, "module-info.class").canRead()) {
+                    expandedModulePath.add(entry);
+                } else if (entry.isDirectory()) {
+                    File[] children = entry.listFiles();
+
+                    if (children != null) {
+                        expandedModulePath.addAll(List.of(children));
+                    }
+                }
+            }
+
+            return expandedModulePath;
+        }
     }
 
     private static final class GlobalConfiguration {
@@ -1162,8 +1198,10 @@ public class Main {
                 }
 
                 if (rootConfiguration.addExports != null) {
-                    result.add("--add-exports");
-                    result.add(rootConfiguration.addExports);
+                    rootConfiguration.addExports.forEach(exp -> {
+                        result.add("--add-exports");
+                        result.add(exp);
+                    });
                 }
 
                 return result;
@@ -1309,7 +1347,7 @@ public class Main {
                 }
             }
 
-            if (ClassPath.BOOT.equals(type)) {
+            if (ClassPath.BOOT.equals(type) || JavaClassPathConstants.MODULE_BOOT_PATH.equals(type)) {
                 return Utils.createDefaultBootClassPath();
             }
             return null;
@@ -1383,5 +1421,10 @@ public class Main {
         for (String child : from.childrenNames()) {
             copyPreferences(from.node(child), to.node(child));
         }
+    }
+
+    static {
+        //disable the source level downgrade, to avoid falling back to --release (which breaks --add-exports on system classes):
+        JavacParser.DISABLE_SOURCE_LEVEL_DOWNGRADE = true;
     }
 }

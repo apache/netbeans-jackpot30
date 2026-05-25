@@ -19,7 +19,6 @@
 package org.netbeans.modules.jackpot30.cmdline;
 
 import java.util.regex.Pattern;
-import javax.annotation.processing.Processor;
 import org.netbeans.modules.jackpot30.cmdline.Main.BCPFallBack;
 import org.netbeans.modules.jackpot30.cmdline.Main.CompilerOptionsQueryImpl;
 import org.netbeans.modules.jackpot30.cmdline.Main.SourceLevelQueryImpl;

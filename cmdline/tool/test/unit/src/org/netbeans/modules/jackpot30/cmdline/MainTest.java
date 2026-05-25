@@ -21,6 +21,7 @@ package org.netbeans.modules.jackpot30.cmdline;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -39,8 +40,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.jar.JarOutputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
 import javax.tools.SimpleJavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
@@ -639,10 +642,6 @@ public class MainTest extends NbTestCase {
     }
 
     public void testAutomaticTestRun() throws Exception {
-        if (System.getProperty("sun.boot.class.path") != null) {
-            //TODO XXX: this test does not pass on JDK 8
-            return ;
-        }
         class Config {
             private final String commandLineOption;
             private final int result;
@@ -1117,6 +1116,29 @@ public class MainTest extends NbTestCase {
             }
         }
 
+        File moduleJar = new File(getWorkDir(), "ma.jar");
+
+        try (JarOutputStream jos = new JarOutputStream(new FileOutputStream(moduleJar))) {
+            Path classesOutputPath = classesOutput.toPath();
+
+            Files.walk(classesOutputPath)
+                 .forEach(p -> {
+                     try {
+                         String path = classesOutputPath.relativize(p).toString();
+
+                         if (path.isEmpty()) {
+                         } else if (Files.isDirectory(p)) {
+                             jos.putNextEntry(new ZipEntry(path + "/"));
+                         } else {
+                             jos.putNextEntry(new ZipEntry(path));
+                             jos.write(Files.readAllBytes(p));
+                         }
+                     } catch (IOException ex) {
+                         throw new IllegalStateException(ex);
+                     }
+                 });
+        }
+
         String golden =
             """
             package test;
@@ -1130,34 +1152,36 @@ public class MainTest extends NbTestCase {
             }
             """;
 
-        List<String> filesAndOptions = new ArrayList<>();
+        for (File modulePathVariants : new File[] {moduleJar, classesOutput, classesOutput.getParentFile()}) {
+            List<String> filesAndOptions = new ArrayList<>();
 
-        filesAndOptions.add("src/test/Test.java");
-        filesAndOptions.add("""
-                            package test;
-                            import api.Api;
-                            import impl.Impl;
-                            public class Test {
-                                private void test() {
-                                    boolean b1 = Api.get().size() == 0;
-                                    boolean b2 = Impl.get().size() == 0;
+            filesAndOptions.add("src/test/Test.java");
+            filesAndOptions.add("""
+                                package test;
+                                import api.Api;
+                                import impl.Impl;
+                                public class Test {
+                                    private void test() {
+                                        boolean b1 = Api.get().size() == 0;
+                                        boolean b2 = Impl.get().size() == 0;
+                                    }
                                 }
-                            }
-                            """);
-        filesAndOptions.addAll(listFiles(classesOutput));
-        filesAndOptions.add(null);
-        filesAndOptions.add("--apply");
-        filesAndOptions.add("--hint");
-        filesAndOptions.add(TEST_HINT);
-        filesAndOptions.add("--source"); filesAndOptions.add("17");
-        filesAndOptions.add("--module-path"); filesAndOptions.add(classesOutput.getAbsolutePath());
-        filesAndOptions.add("--add-modules"); filesAndOptions.add("ma");
-        filesAndOptions.add("--add-exports"); filesAndOptions.add("ma/impl=ALL-UNNAMED");
+                                """);
+            filesAndOptions.addAll(listFiles(classesOutput, moduleJar));
+            filesAndOptions.add(null);
+            filesAndOptions.add("--apply");
+            filesAndOptions.add("--hint");
+            filesAndOptions.add(TEST_HINT);
+            filesAndOptions.add("--source"); filesAndOptions.add("17");
+            filesAndOptions.add("--module-path"); filesAndOptions.add(modulePathVariants.getAbsolutePath());
+            filesAndOptions.add("--add-modules"); filesAndOptions.add("ma");
+            filesAndOptions.add("--add-exports"); filesAndOptions.add("ma/impl=ALL-UNNAMED");
 
-        doRunCompiler(golden,
-                      null,
-                      null,
-                      filesAndOptions.toArray(String[]::new));
+            doRunCompiler(golden,
+                          null,
+                          null,
+                          filesAndOptions.toArray(String[]::new));
+        }
     }
 
     public void testLimitModules() throws Exception {
@@ -1204,6 +1228,44 @@ public class MainTest extends NbTestCase {
         filesAndOptions.add("--source"); filesAndOptions.add("17");
         filesAndOptions.add("--limit-modules"); filesAndOptions.add("java.base");
         filesAndOptions.add("${workdir}/src");
+
+        doRunCompiler(golden,
+                      null,
+                      null,
+                      filesAndOptions.toArray(String[]::new));
+    }
+
+    public void testSystemOption() throws Exception {
+        clearWorkDir();
+
+        String golden =
+            """
+            package test;
+            import java.util.List;
+            public class Test {
+                private void test(List<String> l) {
+                    boolean b = l.isEmpty();
+                }
+            }
+            """;
+        List<String> filesAndOptions = new ArrayList<>();
+
+        filesAndOptions.add("src/test/Test.java");
+        filesAndOptions.add("""
+                            package test;
+                            import java.util.List;
+                            public class Test {
+                                private void test(List<String> l) {
+                                    boolean b = l.size() == 0;
+                                }
+                            }
+                            """);
+        filesAndOptions.add(null);
+        filesAndOptions.add("--apply");
+        filesAndOptions.add("--hint");
+        filesAndOptions.add(TEST_HINT);
+        filesAndOptions.add("--source"); filesAndOptions.add("17");
+        filesAndOptions.add("--system"); filesAndOptions.add(System.getProperty("java.home"));
 
         doRunCompiler(golden,
                       null,
@@ -1429,20 +1491,22 @@ public class MainTest extends NbTestCase {
         return target;
     }
 
-    private List<String> listFiles(File directory) throws IOException {
+    private List<String> listFiles(File... files) throws IOException {
         Path base = getWorkDir().toPath();
         List<String> result = new ArrayList<>();
 
-        Files.walk(directory.toPath())
-             .filter(Files::isRegularFile)
-             .forEach(p -> {
-                 try {
-                     result.add(base.relativize(p).toString());
-                     result.add(BASE_64_PREFIX + Base64.getEncoder().encodeToString(Files.readAllBytes(p)));
-                 } catch (IOException ex) {
-                     throw new IllegalStateException(ex);
-                 }
-             });
+        for (File file : files) {
+            Files.walk(file.toPath())
+                 .filter(Files::isRegularFile)
+                 .forEach(p -> {
+                     try {
+                         result.add(base.relativize(p).toString());
+                         result.add(BASE_64_PREFIX + Base64.getEncoder().encodeToString(Files.readAllBytes(p)));
+                     } catch (IOException ex) {
+                         throw new IllegalStateException(ex);
+                     }
+                 });
+        }
 
         return result;
     }

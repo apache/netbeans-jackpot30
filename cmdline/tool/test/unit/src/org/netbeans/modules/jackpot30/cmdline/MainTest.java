@@ -1098,7 +1098,7 @@ public class MainTest extends NbTestCase {
                                 return null;
                             }
                         }
-                        """));
+                        """),
             writeToPath("src/ma/impl2/Impl2.java",
                         """
                         package impl2;

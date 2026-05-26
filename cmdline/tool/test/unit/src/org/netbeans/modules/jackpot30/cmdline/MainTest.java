@@ -1099,6 +1099,16 @@ public class MainTest extends NbTestCase {
                             }
                         }
                         """));
+            writeToPath("src/ma/impl2/Impl2.java",
+                        """
+                        package impl2;
+                        import java.util.Collection;
+                        public class Impl2 {
+                            public static Collection<String> get() {
+                                return null;
+                            }
+                        }
+                        """));
         File classesOutput = new File(getWorkDir(), "classes/ma");
 
         classesOutput.getParentFile().mkdirs();
@@ -1144,10 +1154,12 @@ public class MainTest extends NbTestCase {
             package test;
             import api.Api;
             import impl.Impl;
+            import impl2.Impl2;
             public class Test {
                 private void test() {
                     boolean b1 = Api.get().isEmpty();
                     boolean b2 = Impl.get().isEmpty();
+                    boolean b3 = Impl2.get().isEmpty();
                 }
             }
             """;
@@ -1160,10 +1172,12 @@ public class MainTest extends NbTestCase {
                                 package test;
                                 import api.Api;
                                 import impl.Impl;
+                                import impl2.Impl2;
                                 public class Test {
                                     private void test() {
                                         boolean b1 = Api.get().size() == 0;
                                         boolean b2 = Impl.get().size() == 0;
+                                        boolean b3 = Impl2.get().size() == 0;
                                     }
                                 }
                                 """);
@@ -1176,6 +1190,7 @@ public class MainTest extends NbTestCase {
             filesAndOptions.add("--module-path"); filesAndOptions.add(modulePathVariants.getAbsolutePath());
             filesAndOptions.add("--add-modules"); filesAndOptions.add("ma");
             filesAndOptions.add("--add-exports"); filesAndOptions.add("ma/impl=ALL-UNNAMED");
+            filesAndOptions.add("--add-exports"); filesAndOptions.add("ma/impl2=ALL-UNNAMED");
 
             doRunCompiler(golden,
                           null,

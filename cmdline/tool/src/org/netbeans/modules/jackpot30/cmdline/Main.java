@@ -1071,9 +1071,9 @@ public class Main {
             }
             this.sourceCP = createClassPath(parsed.has(groupOptions.sourcepath) ? parsed.valuesOf(groupOptions.sourcepath) : null, ClassPathSupport.createClassPath(roots.toArray(new FileObject[0])));
             this.binaryCP = ClassPathSupport.createProxyClassPath(bootCP, compileCP, systemCP, modulePathCP);
-            this.addExports = parsed.has(groupOptions.addExports) ? parsed.valuesOf(groupOptions.addExports) : null; //TOOD: test check multiple(!!)
-            this.addModules = parsed.has(groupOptions.addModules) ? parsed.valueOf(groupOptions.addModules) : null;;
-            this.limitModules = parsed.has(groupOptions.limitModules) ? parsed.valueOf(groupOptions.limitModules) : null;;
+            this.addExports = parsed.has(groupOptions.addExports) ? parsed.valuesOf(groupOptions.addExports) : null;
+            this.addModules = parsed.has(groupOptions.addModules) ? parsed.valueOf(groupOptions.addModules) : null;
+            this.limitModules = parsed.has(groupOptions.limitModules) ? parsed.valueOf(groupOptions.limitModules) : null;
             this.sourceLevel = parsed.valueOf(groupOptions.source);
         }
 

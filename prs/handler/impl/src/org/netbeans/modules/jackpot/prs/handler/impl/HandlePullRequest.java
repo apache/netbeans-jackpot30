@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.swing.event.ChangeListener;
 import org.netbeans.api.java.platform.JavaPlatform;
 import org.netbeans.api.java.queries.BinaryForSourceQuery;
@@ -50,6 +51,7 @@ import org.netbeans.api.project.Sources;
 import org.netbeans.api.project.ui.OpenProjects;
 import org.netbeans.api.sendopts.CommandException;
 import org.netbeans.modules.jackpot.prs.handler.impl.SiteWrapper.Factory;
+import org.netbeans.modules.jackpot.prs.handler.impl.SiteWrapper.ReviewComment;
 import org.netbeans.modules.java.hints.spiimpl.batch.BatchUtilities;
 import org.netbeans.modules.java.hints.spiimpl.hints.HintsInvoker;
 import org.netbeans.modules.java.hints.spiimpl.options.HintsSettings;
@@ -97,7 +99,7 @@ public class HandlePullRequest extends OptionProcessor {
         File tempDir = Places.getCacheSubdirectory("checkout");
         Map<String, Object> inputParsed = new ObjectMapper().readValue(inputData, Map.class);
         Object action = inputParsed.get("action");
-        if (!"opened".equals(action))
+        if (!"opened".equals(action) && !"synchronize".equals(action))
             return ;
         Map<String, Object> pullRequest = (Map<String, Object>) inputParsed.get("pull_request");
         if (pullRequest == null) {
@@ -198,6 +200,7 @@ public class HandlePullRequest extends OptionProcessor {
         }
         OpenProjects.getDefault().open(projects.toArray(new Project[0]), false);
         Map<ClasspathInfo, Collection<FileObject>> sorted = BatchUtilities.sortFiles(file2Remap.keySet());
+        AtomicReference<List<ReviewComment>> reviewComments = new AtomicReference<>();
         for (Entry<ClasspathInfo, Collection<FileObject>> e : sorted.entrySet()) {
             System.err.println("Running hints for:");
             System.err.println("files: " + e.getValue());
@@ -226,8 +229,21 @@ public class HandlePullRequest extends OptionProcessor {
                         hasWarnings[0] = true;
                         if (commentGitHub[0] == null) {
                             commentGitHub[0] = factory.create(oauthAppToken);
+                            reviewComments.set(commentGitHub[0].getReviewComments(fullRepoName, prId));
                         }
-                        commentGitHub[0].createReviewComment(fullRepoName, prId, comment, sha, fileData.filename, targetPosition);
+                        boolean writeComment = true;
+                        for (ReviewComment rc : reviewComments.get()) {
+                            if (fileData.filename.equals(rc.filename) &&
+                                targetPosition == rc.linenumber &&
+                                comment.equals(rc.comment)) {
+                                //skip comment:
+                                writeComment = false;
+                                break;
+                            }
+                        }
+                        if (writeComment) {
+                            commentGitHub[0].createReviewComment(fullRepoName, prId, comment, sha, fileData.filename, targetPosition);
+                        }
                     }
                 }, false).get();
             } catch (Throwable ex) {

@@ -19,6 +19,7 @@
 package org.netbeans.modules.jackpot.prs.handler.impl;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  *
@@ -30,7 +31,21 @@ public interface SiteWrapper {
     public void createCommitStatusSuccess(String fullRepoName, String sha, String text) throws IOException;
 
     public void createReviewComment(String fullRepoName, int prId, String comment, String sha, String filename, int targetPosition) throws IOException;
-    
+    public List<ReviewComment> getReviewComments(String fullRepoName, int prId) throws IOException;
+
+    public static final class ReviewComment {
+        public final String filename;
+        public final int linenumber;
+        public final String comment;
+
+        public ReviewComment(String filename, int linenumber, String comment) {
+            this.filename = filename;
+            this.linenumber = linenumber;
+            this.comment = comment;
+        }
+
+    }
+
     public static interface Factory {
         public SiteWrapper create(String authToken) throws IOException;
     }

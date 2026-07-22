@@ -54,6 +54,7 @@ public interface CompilerDescription {
     public String getName();
     public boolean isValid();
     public Result decompile(DecompilerDescription decompiler, Input input);
+    public String objectClassURI();
 
     public static class Factory {
         private static Collection<? extends CompilerDescription> descriptions;
@@ -72,7 +73,10 @@ public interface CompilerDescription {
                     FileObject jrtfs = installDir.getFileObject("lib/jrt-fs.jar");
 
                     if (toolsJar != null || jrtfs != null) {
-                        result.add(new ExecCompilerDescription(platform, moduleJar, toolsJar != null ? FileUtil.toFile(toolsJar) : null));
+                        FileObject objectClass = platform.getBootstrapLibraries().findResource("java/lang/Object.class");
+                        String objectClassURI = objectClass != null ? objectClass.toURI().toString() : null;
+
+                        result.add(new ExecCompilerDescription(platform, moduleJar, toolsJar != null ? FileUtil.toFile(toolsJar) : null, objectClassURI));
                     }
                 }
             }
@@ -94,10 +98,12 @@ public interface CompilerDescription {
         private static class LoaderBased implements CompilerDescription {
             public final String displayName;
             public final URL[] jars;
+            private final String objectClassURI;
 
-            private LoaderBased(String displayName, URL[] jars) {
+            private LoaderBased(String displayName, URL[] jars, String objectClassURI) {
                 this.displayName = displayName;
                 this.jars = jars;
+                this.objectClassURI = objectClassURI;
             }
 
             @Override
@@ -158,6 +164,11 @@ public interface CompilerDescription {
                 return decompiler.createDecompiler(loader).decompile(input);
             }
 
+            @Override
+            public String objectClassURI() {
+                return objectClassURI;
+            }
+
         }
 
         private static final class ExecCompilerDescription implements CompilerDescription {
@@ -167,11 +178,13 @@ public interface CompilerDescription {
             private final JavaPlatform platform;
             private final File moduleJar;
             private final File toolsJar;
+            private final String objectClassURI;
 
-            public ExecCompilerDescription(JavaPlatform platform, File moduleJar, File toolsJar) {
+            public ExecCompilerDescription(JavaPlatform platform, File moduleJar, File toolsJar, String objectClassURI) {
                 this.platform = platform;
                 this.moduleJar = moduleJar;
                 this.toolsJar = toolsJar;
+                this.objectClassURI = objectClassURI;
             }
 
             @Override
@@ -220,6 +233,11 @@ public interface CompilerDescription {
                     return new Result(exception.toString(), null, null);
                 }
                 
+            }
+
+            @Override
+            public String objectClassURI() {
+                return objectClassURI;
             }
 
         }

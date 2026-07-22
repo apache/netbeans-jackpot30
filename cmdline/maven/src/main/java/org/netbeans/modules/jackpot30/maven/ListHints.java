@@ -18,20 +18,15 @@
  */
 package org.netbeans.modules.jackpot30.maven;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.project.MavenProject;
-import org.netbeans.modules.jackpot30.cmdline.Main;
 
 /**
- * @goal showgui
- * @author Jan Lahoda
+ * @goal list
  */
-public class ShowGuiJackpot30 extends AbstractMojo {
+public class ListHints extends RunJackpot30 {
 
     /**
      * @parameter property="project"
@@ -41,28 +36,9 @@ public class ShowGuiJackpot30 extends AbstractMojo {
     private MavenProject project;
 
     public void execute() throws MojoExecutionException, MojoFailureException {
-        try {
-            if (!project.isExecutionRoot()) return;
+        if (!project.isExecutionRoot()) return;
 
-            String configurationFile = Utils.getJackpotConfigurationFile(project);
-
-            if (configurationFile == null)
-                throw new MojoExecutionException("No configuration file specified, cannot show configuration GUI");
-
-            List<String> cmdLine = new ArrayList<String>();
-
-            cmdLine.add("--config-file");
-            cmdLine.add(configurationFile);
-            cmdLine.addAll(RunJackpot30.sourceAndCompileClassPaths(project.getCollectedProjects()));
-            cmdLine.add("--show-gui");
-            System.err.println(cmdLine);
-
-            Main.compile(cmdLine.toArray(new String[0]));
-        } catch (IOException ex) {
-            throw new MojoExecutionException(ex.getMessage(), ex);
-        } catch (ClassNotFoundException ex) {
-            throw new MojoExecutionException(ex.getMessage(), ex);
-        }
+        runWithArguments(List.of("--list"));
     }
 
 }

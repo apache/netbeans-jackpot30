@@ -60,6 +60,20 @@ public class Utils {
         return null;
     }
 
+    public static String getJackpotHint(MavenProject project) {
+        Xpp3Dom configuration = getJackpotPluginConfiguration(project);
+
+        if (configuration != null) {
+            Xpp3Dom configurationFileElement = configuration.getChild("hint");
+
+            if (configurationFileElement != null) {
+                return configurationFileElement.getValue();
+            }
+        }
+
+        return null;
+    }
+
     public static boolean getJackpotFailOnWarnings(MavenProject project) {
         Xpp3Dom configuration = getJackpotPluginConfiguration(project);
 

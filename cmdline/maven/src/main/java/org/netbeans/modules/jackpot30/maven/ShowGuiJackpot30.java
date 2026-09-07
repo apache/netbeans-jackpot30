@@ -25,32 +25,36 @@ import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.netbeans.modules.jackpot30.cmdline.Main;
 
 /**
- * @goal showgui
+ *
  * @author Jan Lahoda
  */
+@Mojo(name = "showgui", requiresProject = true)
 public class ShowGuiJackpot30 extends AbstractMojo {
 
-    /**
-     * @parameter property="project"
-     * @required
-     * @readonly
-     */
+    @Parameter(defaultValue = "${project}", required = true, readonly = true)
     private MavenProject project;
 
+    @Parameter(property = "configurationFile")
+    private String configurationFile;
+
+    @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         try {
-            if (!project.isExecutionRoot()) return;
+            if (!project.isExecutionRoot()) {
+                return;
+            }
 
-            String configurationFile = Utils.getJackpotConfigurationFile(project);
-
-            if (configurationFile == null)
+            if (configurationFile == null) {
                 throw new MojoExecutionException("No configuration file specified, cannot show configuration GUI");
+            }
 
-            List<String> cmdLine = new ArrayList<String>();
+            List<String> cmdLine = new ArrayList<>();
 
             cmdLine.add("--config-file");
             cmdLine.add(configurationFile);
@@ -59,11 +63,7 @@ public class ShowGuiJackpot30 extends AbstractMojo {
             System.err.println(cmdLine);
 
             Main.compile(cmdLine.toArray(new String[0]));
-        } catch (IOException ex) {
-            throw new MojoExecutionException(ex.getMessage(), ex);
-        } catch (ClassNotFoundException ex) {
-            throw new MojoExecutionException(ex.getMessage(), ex);
-        } catch (DependencyResolutionRequiredException ex) {
+        } catch (IOException | ClassNotFoundException | DependencyResolutionRequiredException ex) {
             throw new MojoExecutionException(ex.getMessage(), ex);
         }
     }

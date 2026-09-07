@@ -20,7 +20,6 @@ package org.netbeans.modules.jackpot30.maven;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,13 +32,23 @@ import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.netbeans.modules.jackpot30.cmdline.Main;
 
 public abstract class RunJackpot30 extends AbstractMojo {
 
-    protected final void doRun(MavenProject project, boolean apply) throws MojoExecutionException, MojoFailureException {
+    @Parameter(defaultValue = "${project}", required = true, readonly = true)
+    private MavenProject project;
+
+    @Parameter(property = "failOnWarnings", defaultValue = "true")
+    private boolean failOnWarnings;
+
+    @Parameter(property = "configurationFile")
+    private String configurationFile = null;
+
+    protected final void doRun(boolean apply) throws MojoExecutionException, MojoFailureException {
         try {
             String sourceLevel = "1.5";
             Xpp3Dom sourceLevelConfiguration = Utils.getPluginConfiguration(project, "org.apache.maven.plugins", "maven-compiler-plugin");
@@ -52,15 +61,13 @@ public abstract class RunJackpot30 extends AbstractMojo {
                 }
             }
 
-            String configurationFile = Utils.getJackpotConfigurationFile(project);
-            boolean failOnWarnings = Utils.getJackpotFailOnWarnings(project);
+            List<String> cmdLine = new ArrayList<>();
 
-            List<String> cmdLine = new ArrayList<String>();
-
-            if (apply)
+            if (apply) {
                 cmdLine.add("--apply");
-            else
+            } else {
                 cmdLine.add("--no-apply");
+            }
 
             cmdLine.addAll(sourceAndCompileClassPaths(Collections.singletonList(project)));
             cmdLine.add("--source");
@@ -86,29 +93,25 @@ public abstract class RunJackpot30 extends AbstractMojo {
 
             if (!hasSourceRoots) {
                 getLog().debug("jackpot30 analyze: Not source roots to operate on");
-                return ;
+                return;
             }
 
             Path bin = Paths.get(System.getProperty("java.home"))
-                            .resolve("bin");
+                    .resolve("bin");
             Path launcher = bin.resolve("java");
             if (!Files.exists(launcher)) {
                 launcher = bin.resolve("java.exe");
             }
             cmdLine.addAll(0, Arrays.asList(launcher.toAbsolutePath().toString(),
-                                            "-classpath", Main.class.getProtectionDomain().getCodeSource().getLocation().getPath(),
-                                            "-XX:+IgnoreUnrecognizedVMOptions",
-                                            "--add-opens=java.base/java.net=ALL-UNNAMED",
-                                            "--add-opens=java.desktop/sun.awt=ALL-UNNAMED",
-                                            Main.class.getCanonicalName()));
+                    "-classpath", Main.class.getProtectionDomain().getCodeSource().getLocation().getPath(),
+                    "-XX:+IgnoreUnrecognizedVMOptions",
+                    "--add-opens=java.base/java.net=ALL-UNNAMED",
+                    "--add-opens=java.desktop/sun.awt=ALL-UNNAMED",
+                    Main.class.getCanonicalName()));
             if (new ProcessBuilder(cmdLine).inheritIO().start().waitFor() != 0) {
                 throw new MojoExecutionException("jackpo30 failed.");
             }
-        } catch (IOException ex) {
-            throw new MojoExecutionException(ex.getMessage(), ex);
-        } catch (InterruptedException ex) {
-            throw new MojoExecutionException(ex.getMessage(), ex);
-        } catch (DependencyResolutionRequiredException ex) {
+        } catch (IOException | InterruptedException | DependencyResolutionRequiredException ex) {
             throw new MojoExecutionException(ex.getMessage(), ex);
         }
     }
@@ -117,7 +120,9 @@ public abstract class RunJackpot30 extends AbstractMojo {
         StringBuilder classPath = new StringBuilder();
 
         for (String root : entries) {
-            if (classPath.length() > 0) classPath.append(File.pathSeparatorChar);
+            if (classPath.length() > 0) {
+                classPath.append(File.pathSeparatorChar);
+            }
             classPath.append(root);
         }
 
@@ -126,8 +131,8 @@ public abstract class RunJackpot30 extends AbstractMojo {
 
     @SuppressWarnings("unchecked")
     public static List<String> sourceAndCompileClassPaths(Iterable<? extends MavenProject> projects) throws DependencyResolutionRequiredException {
-        List<String> compileSourceRoots = new ArrayList<String>();
-        List<String> compileClassPath = new ArrayList<String>();
+        List<String> compileSourceRoots = new ArrayList<>();
+        List<String> compileClassPath = new ArrayList<>();
 
         for (MavenProject project : projects) {
             compileSourceRoots.addAll((List<String>) project.getCompileSourceRoots());
@@ -135,13 +140,13 @@ public abstract class RunJackpot30 extends AbstractMojo {
             for (Resource r : (List<Resource>) project.getResources()) {
                 compileSourceRoots.add(r.getDirectory());
             }
-            
+
             compileClassPath.addAll((List<String>) project.getCompileClasspathElements());
         }
 
         return Arrays.asList("--sourcepath",
-                             toClassPathString(compileSourceRoots),
-                             "--classpath",
-                             toClassPathString(compileClassPath));
+                toClassPathString(compileSourceRoots),
+                "--classpath",
+                toClassPathString(compileClassPath));
     }
 }

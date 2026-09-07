@@ -30,12 +30,14 @@ public class Utils {
 
     public static Xpp3Dom getPluginConfiguration(MavenProject project, String groupId, String artifactId) {
         for (Object o : project.getBuild().getPlugins()) {
-            if (!(o instanceof Plugin)) continue;
+            if (!(o instanceof Plugin)) {
+                continue;
+            }
 
             Plugin p = (Plugin) o;
 
-            if (   groupId.equals(p.getGroupId())
-                && artifactId.equals(p.getArtifactId())) {
+            if (groupId.equals(p.getGroupId())
+                    && artifactId.equals(p.getArtifactId())) {
                 if (p.getConfiguration() instanceof Xpp3Dom) {
                     return (Xpp3Dom) p.getConfiguration();
                 }
@@ -46,35 +48,4 @@ public class Utils {
         return null;
     }
 
-    public static String getJackpotConfigurationFile(MavenProject project) {
-        Xpp3Dom configuration = getJackpotPluginConfiguration(project);
-        
-        if (configuration != null) {
-            Xpp3Dom configurationFileElement = configuration.getChild("configurationFile");
-
-            if (configurationFileElement != null) {
-                return configurationFileElement.getValue();
-            }
-        }
-
-        return null;
-    }
-
-    public static boolean getJackpotFailOnWarnings(MavenProject project) {
-        Xpp3Dom configuration = getJackpotPluginConfiguration(project);
-
-        if (configuration != null) {
-            Xpp3Dom configurationFileElement = configuration.getChild("failOnWarnings");
-
-            if (configurationFileElement != null) {
-                return "true".equalsIgnoreCase(configurationFileElement.getValue());
-            }
-        }
-
-        return true;
-    }
-
-    private static Xpp3Dom getJackpotPluginConfiguration(MavenProject project) {
-        return getPluginConfiguration(project, "org.apache.netbeans.modules.jackpot30", "jackpot30-maven-plugin");
-    }
 }

@@ -20,24 +20,18 @@ package org.netbeans.modules.jackpot30.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.project.MavenProject;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.ResolutionScope;
 
 /**
- * @goal apply
- * @requiresDependencyResolution compile
  * @author Jan Lahoda
  */
+@Mojo(name = "apply", requiresDependencyResolution = ResolutionScope.COMPILE, requiresProject = true)
 public class RunApply extends RunJackpot30 {
 
-    /**
-     * @parameter property="project"
-     * @required
-     * @readonly
-     */
-    private MavenProject project;
-
+    @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        doRun(project, true);
+        doRun(true);
     }
 
 }

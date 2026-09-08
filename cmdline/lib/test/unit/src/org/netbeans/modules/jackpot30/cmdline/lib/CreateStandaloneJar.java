@@ -48,7 +48,6 @@ import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttributeImpl;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttributeImpl;
-import org.apache.lucene.analysis.tokenattributes.TermAttributeImpl;
 import org.netbeans.api.java.source.JavaSource;
 import org.netbeans.junit.NbTestCase;
 import org.netbeans.modules.classfile.ClassFile;
@@ -522,7 +521,6 @@ public abstract class CreateStandaloneJar extends NbTestCase {
             
             "com.sun.tools.javac.resources.compiler",
             "com.sun.tools.javac.resources.javac",
-            TermAttributeImpl.class.getName(),
             OffsetAttributeImpl.class.getName(),
             PositionIncrementAttributeImpl.class.getName()
 

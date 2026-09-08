@@ -98,51 +98,30 @@ public class Utils {
 
     //copied from BootClassPathUtil:
     public static ClassPath createDefaultBootClassPath() {
-        String cp = System.getProperty("sun.boot.class.path");
-        if (cp != null) {
-            List<URL> urls = new ArrayList<>();
-            String[] paths = cp.split(Pattern.quote(System.getProperty("path.separator")));
-            for (String path : paths) {
-                File f = new File(path);
-
-                if (!f.canRead())
-                    continue;
-
-                FileObject fo = FileUtil.toFileObject(f);
-                if (FileUtil.isArchiveFile(fo)) {
-                    fo = FileUtil.getArchiveRoot(fo);
-                }
-                if (fo != null) {
-                    urls.add(fo.toURL());
-                }
-            }
-            return ClassPathSupport.createClassPath((URL[])urls.toArray(new URL[0]));
-        } else {
-            try {
-                Class.forName("org.netbeans.ProxyURLStreamHandlerFactory").getMethod("register")
-                                                                          .invoke(null);
-            } catch (ClassNotFoundException | NoSuchMethodException |
-                     SecurityException | IllegalAccessException |
-                    IllegalArgumentException | InvocationTargetException ex) {
-                throw new IllegalStateException(ex);
-            }
-            final List<PathResourceImplementation> modules = new ArrayList<>();
-            final File installDir = new File(System.getProperty("java.home"));
-            final URI imageURI = getImageURI(installDir);
-            try {
-                final FileObject jrtRoot = URLMapper.findFileObject(imageURI.toURL());
-                final FileObject root = getModulesRoot(jrtRoot);
-                for (FileObject module : root.getChildren()) {
-                    modules.add(ClassPathSupport.createResource(module.toURL()));
-                }
-            } catch (MalformedURLException e) {
-                throw new IllegalStateException(e);
-            }
-            if (modules.isEmpty()) {
-                throw new IllegalStateException("No modules!");
-            }
-            return ClassPathSupport.createClassPath(modules);
+        try {
+            Class.forName("org.netbeans.ProxyURLStreamHandlerFactory").getMethod("register")
+                                                                      .invoke(null);
+        } catch (ClassNotFoundException | NoSuchMethodException |
+                 SecurityException | IllegalAccessException |
+                IllegalArgumentException | InvocationTargetException ex) {
+            throw new IllegalStateException(ex);
         }
+        final List<PathResourceImplementation> modules = new ArrayList<>();
+        final File installDir = new File(System.getProperty("java.home"));
+        final URI imageURI = getImageURI(installDir);
+        try {
+            final FileObject jrtRoot = URLMapper.findFileObject(imageURI.toURL());
+            final FileObject root = getModulesRoot(jrtRoot);
+            for (FileObject module : root.getChildren()) {
+                modules.add(ClassPathSupport.createResource(module.toURL()));
+            }
+        } catch (MalformedURLException e) {
+            throw new IllegalStateException(e);
+        }
+        if (modules.isEmpty()) {
+            throw new IllegalStateException("No modules!");
+        }
+        return ClassPathSupport.createClassPath(modules);
     }
 
     private static final String PROTOCOL = "nbjrt"; //NOI18N

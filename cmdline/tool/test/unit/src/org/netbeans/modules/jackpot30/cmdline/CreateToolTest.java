@@ -71,11 +71,14 @@ public class CreateToolTest extends MainTest {
 
             int actualExitCode = p.waitFor();
 
-            assertEquals(exitcode, actualExitCode);
-
             outCopy.doJoin();
             errCopy.doJoin();
+
+            assertEquals(exitcode, actualExitCode);
         } catch (Throwable t) {
+            System.err.println(output[0]);
+            System.err.println(output[1]);
+
             throw new IOException(t);
         }
     }

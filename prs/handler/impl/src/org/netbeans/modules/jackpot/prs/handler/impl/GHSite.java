@@ -19,8 +19,13 @@
 package org.netbeans.modules.jackpot.prs.handler.impl;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.kohsuke.github.GHCommitState;
 import org.kohsuke.github.GHPullRequest;
+import org.kohsuke.github.GHPullRequestReviewComment;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
@@ -56,6 +61,13 @@ public class GHSite implements SiteWrapper {
         GHRepository commentTarget = github.getRepository(fullRepoName);
         GHPullRequest pr = commentTarget.getPullRequest(prId);
         pr.createReviewComment(comment, sha, filename, targetPosition);
+    }
+
+    @Override
+    public List<ReviewComment> getReviewComments(String fullRepoName, int prId) throws IOException {
+        GHRepository commentTarget = github.getRepository(fullRepoName);
+        GHPullRequest pr = commentTarget.getPullRequest(prId);
+        return pr.listReviewComments().asList().stream().map(c -> new ReviewComment(c.getPath(), c.getPosition(), c.getBody())).collect(Collectors.toList());
     }
 
     public static class FactoryImpl implements Factory {

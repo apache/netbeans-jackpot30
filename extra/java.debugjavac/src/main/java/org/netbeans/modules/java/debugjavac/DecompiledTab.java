@@ -182,6 +182,10 @@ public class DecompiledTab {
             NbDocument.runAtomic((StyledDocument) doc, new Runnable() {
                 @Override public void run() {
                     try {
+                        String existing = doc.getText(0, doc.getLength());
+                        if (existing.equals(decompiledCode)) {
+                            return ;
+                        }
                         doc.remove(0, doc.getLength());
                         if (doc instanceof GuardedDocument) {
                             ((GuardedDocument) doc).getGuardedBlockChain().removeEmptyBlocks();
@@ -369,25 +373,6 @@ public class DecompiledTab {
     private static final class Updater implements CancellableTask<CompilationInfo> {
         @Override public void run(CompilationInfo parameter) throws Exception {
             doDecompileIntoDocument(parameter.getFileObject());
-//            FileObject sourceFile = parameter.getFileObject();
-////            if (sourceFile.getAttribute(ATTR_DECOMPILED) == Boolean.TRUE) return;
-//            final FileObject decompiled = findDecompiled(sourceFile, false);
-//            
-//            if (decompiled == null) return ;
-//            
-//            final ElementHandle<?> handle = ElementHandle.create(parameter.getTopLevelElements().get(0));
-//
-//            JavaSource.create(parameter.getClasspathInfo(), decompiled).runModificationTask(new Task<WorkingCopy>() {
-//                @Override public void run(WorkingCopy copy) throws Exception {
-//                    copy.toPhase(Phase.RESOLVED);
-//
-//                    copy.rewrite(copy.getCompilationUnit(), CodeGenerator.generateCode(copy, (TypeElement) handle.resolve(copy)));
-//                }
-//            }).commit();
-//            
-//            SaveCookie sc = DataObject.find(decompiled).getLookup().lookup(SaveCookie.class);
-//            
-//            if (sc != null) sc.save();
         }
 
         @Override public void cancel() {

@@ -1018,6 +1018,47 @@ public class MainTest extends NbTestCase {
                       "--filter-patch", getWorkDirPath() + "/patch.diff");
     }
 
+    public void testPatchWarningsMultiLineMatch() throws Exception {
+        String golden = """
+            package test;
+            public class Test {
+                private void test(java.util.Collection c) {
+                    boolean b = c.size() == 0;
+                    boolean b2 = c
+                            .size() == 0;
+                }
+            }
+            """;
+
+        doRunCompiler(golden,
+                      """
+                      ${workdir}/src/test/Test.java:5: warning: [Usage_of_Collection_Map_size_equals_0] c.size() == 0 can be replaced with c.isEmpty()
+                              boolean b2 = c
+                                           ^
+                      """,
+                      "",
+                      "src/test/Test.java",
+                      golden,
+                      "patch.diff",
+                      """
+                      diff --git a/src/test/Test.java b/src/test/Test.java
+                      index 100a838..cc6a6c0 100644
+                      --- a/src/test/Test.java
+                      +++ b/src/test/Test.java
+                      @@ -4,4 +4,5 @@ public class Test {
+                               boolean b = c.size() == 0;
+                               boolean b2 = c
+                      +                .size() == 0;
+                           }
+                       }
+                      """,
+                      null,
+                      "--source", "8",
+                      "--sourcepath", "${workdir}/src",
+                      "--hint", TEST_HINT,
+                      "--filter-patch", getWorkDirPath() + "/patch.diff");
+    }
+
     public void testLineNumber() throws Exception {
         FileObject root = FileUtil.createMemoryFileSystem().getRoot();
         FileObject test1 = root.createData("Test1.java");

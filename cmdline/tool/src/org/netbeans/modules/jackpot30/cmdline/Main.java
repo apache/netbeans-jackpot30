@@ -19,6 +19,7 @@
 
 package org.netbeans.modules.jackpot30.cmdline;
 
+import com.sun.source.tree.Tree;
 import io.reflectoring.diffparser.api.DiffParser;
 import io.reflectoring.diffparser.api.UnifiedDiffParser;
 import io.reflectoring.diffparser.api.model.Diff;
@@ -659,7 +660,20 @@ public class Main {
             @Override
             public Collection<? extends ErrorDescription> createErrors(HintContext ctx) {
                 Collection<? extends ErrorDescription> errors = delegate.createErrors(ctx);
-                return errors != null ? errors.stream().filter(ed -> patch.included(ed)).collect(Collectors.toList()) : null;
+                if (errors == null) return null;
+                //ErrorDescriptionFactory never produces a multi-line span: forTree clamps the
+                //end of the description to the end of its first line, forName uses the (short)
+                //name span. A match that starts on a line the patch did not add but ends on a
+                //line it did add would therefore be filtered out when judged by the description's
+                //range. Use the span of the tree the hint matched instead; fall back to the
+                //description's own range if the tree positions cannot be determined.
+                Tree tree = ctx.getPath().getLeaf();
+                var info = ctx.getInfo();
+                var positions = info.getTrees().getSourcePositions();
+                var compilationUnit = info.getCompilationUnit();
+                int start = (int) positions.getStartPosition(compilationUnit, tree);
+                int end = (int) positions.getEndPosition(compilationUnit, tree);
+                return errors.stream().filter(ed -> patch.included(ed, start, end)).collect(Collectors.toList());
             }
 
         }
@@ -684,7 +698,7 @@ public class Main {
             for (Entry<? extends IndexEnquirer, ? extends Collection<? extends Resource>> e : projectId2Resources.entrySet()) {
                 filteredProjectId2Resources.put(e.getKey(), e.getValue().stream().filter(r -> patch.included(r.getResolvedFile())).collect(Collectors.toList()));
             }
-            return new BatchResult(projectId2Resources, result.problems);
+            return new BatchResult(filteredProjectId2Resources, result.problems);
         } catch (ReflectiveOperationException ex) {
             Exceptions.printStackTrace(ex);
             return result;
@@ -1246,14 +1260,21 @@ public class Main {
             return file2AddedLines.containsKey(file);
         }
 
-        public boolean included(ErrorDescription error) {
-            int startLine = findLineForPos(file2LineStarts, error.getFile(), error.getRange().getBegin());
-            int endLine = findLineForPos(file2LineStarts, error.getFile(), error.getRange().getBegin());
+        /**
+         * @param matchStart start offset of the matched tree, or -1 if unknown
+         * @param matchEnd end offset of the matched tree, or -1 if unknown
+         */
+        public boolean included(ErrorDescription error, int matchStart, int matchEnd) {
             Set<Integer> addedLines = file2AddedLines.get(error.getFile());
 
             if (addedLines == null) {
                 return false;
             }
+
+            int startOffset = matchStart != (-1) ? matchStart : error.getRange().getBegin().getOffset();
+            int endOffset = matchEnd != (-1) && matchEnd >= startOffset ? matchEnd : error.getRange().getEnd().getOffset();
+            int startLine = findLineForPos(file2LineStarts, error.getFile(), startOffset);
+            int endLine = findLineForPos(file2LineStarts, error.getFile(), endOffset);
 
             for (int line = startLine; line <= endLine; line++) {
                 if (addedLines.contains(line)) {

@@ -111,6 +111,8 @@ import org.netbeans.spi.java.hints.HintContext;
 import org.netbeans.spi.java.queries.SourceLevelQueryImplementation2;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
+import org.openide.loaders.DataObject;
+import org.openide.loaders.DataObjectNotFoundException;
 import org.openide.text.PositionRef;
 import org.openide.util.Exceptions;
 import org.openide.util.Lookup;
@@ -582,9 +584,13 @@ public class Main {
                 occurrences = filterBatchResult(occurrences, patch);
 
                 if (globalConfig.apply) {
-                    apply(nestedProgress, occurrences, globalConfig.out);
+                    List<MessageImpl> problems = apply(nestedProgress, occurrences, globalConfig.out);
 
-                    return GroupResult.SUCCESS; //TODO: WarningsAndErrors?
+                    for (MessageImpl problem : problems) {
+                        System.err.println(problem.kind.name().toLowerCase() + ": " + problem.text);
+                    }
+
+                    return problems.isEmpty() ? GroupResult.SUCCESS : GroupResult.FAILURE;
                 } else {
                     findOccurrences(nestedProgress, occurrences, hints, wae);
 
@@ -889,7 +895,13 @@ public class Main {
         System.out.println(b);
     }
 
-    private static void apply(ProgressHandleWrapper progress, BatchResult rawOccurrences, Writer out) throws IOException {
+    /**
+     * @return problems reported by the engine while computing or applying the
+     *         fixes; a file whose fix fails produces a problem and keeps all of
+     *         its original content, so a non-empty list means the result is
+     *         incomplete.
+     */
+    private static List<MessageImpl> apply(ProgressHandleWrapper progress, BatchResult rawOccurrences, Writer out) throws IOException {
         List<MessageImpl> problems = new LinkedList<MessageImpl>();
         Collection<ModificationResult> diffs = BatchUtilities.applyFixes(rawOccurrences, progress, new AtomicBoolean(), new ArrayList<RefactoringElementImplementation>(), null, true, problems);
 
@@ -901,15 +913,24 @@ public class Main {
         } else {
             for (ModificationResult mr : diffs) {
                 mr.commit();
-                //ensure all modified files are saved:
                 for (FileObject file : mr.getModifiedFileObjects()) {
-                    Savable sc = file.getLookup().lookup(Savable.class);
+                    Savable sc = null;
+                    try {
+                        sc = DataObject.find(file).getLookup().lookup(Savable.class);
+                    } catch (DataObjectNotFoundException ex) {
+                        //no DataObject - nothing to save
+                    }
+                    if (sc == null) {
+                        sc = file.getLookup().lookup(Savable.class);
+                    }
                     if (sc != null) {
                         sc.save();
                     }
                 }
             }
         }
+
+        return problems;
     }
 
     private static void printHints(ClassPath sourceFrom, ClassPath binaryFrom) throws IOException {

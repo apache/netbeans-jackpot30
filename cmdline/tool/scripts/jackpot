@@ -18,4 +18,12 @@
 
 JACKPOT_JAR=`readlink -f "$0"`
 JACKPOT_JAR=`dirname "$JACKPOT_JAR"`/jackpot.jar
-java -XX:+IgnoreUnrecognizedVMOptions --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.desktop/sun.awt=ALL-UNNAMED -classpath `dirname "$JACKPOT_JAR"`/jackpot.jar org.netbeans.modules.jackpot30.cmdline.Main "$@"
+#java.awt.headless and the javax.swing.text opens are needed by the scratch
+#Document the engine re-indents rewritten code through (CasualDiff/BaseDocument)
+exec java -XX:+IgnoreUnrecognizedVMOptions \
+     -Djava.awt.headless=true \
+     --add-opens=java.base/java.net=ALL-UNNAMED \
+     --add-opens=java.desktop/sun.awt=ALL-UNNAMED \
+     --add-opens=java.desktop/javax.swing.text=ALL-UNNAMED \
+     $JACKPOT_OPTS \
+     -classpath `dirname "$JACKPOT_JAR"`/jackpot.jar org.netbeans.modules.jackpot30.cmdline.Main "$@"

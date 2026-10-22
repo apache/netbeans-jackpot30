@@ -40,8 +40,10 @@ public class Utils {
         } else {
             //JDK 9+:
             return Arrays.asList(javaHome + "/bin/java",
+                                 "-Djava.awt.headless=true", //scratch Document (CasualDiff)
                                  "--add-opens=java.base/java.net=ALL-UNNAMED", //stream handler factory
-                                 "--add-opens=java.desktop/sun.awt=ALL-UNNAMED" //org.openide.util.RequestProcessor$TopLevelThreadGroup to method sun.awt.AppContext.getAppContext()
+                                 "--add-opens=java.desktop/sun.awt=ALL-UNNAMED", //org.openide.util.RequestProcessor$TopLevelThreadGroup to method sun.awt.AppContext.getAppContext()
+                                 "--add-opens=java.desktop/javax.swing.text=ALL-UNNAMED" //scratch Document (CasualDiff)
             );
         }
     }

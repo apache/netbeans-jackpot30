@@ -322,6 +322,7 @@ public class MainTest extends NbTestCase {
                       "--apply");
     }
 
+
     public void testConfigurationFileDeclarative1() throws Exception {
         String golden =
             "package test;\n" +
@@ -1067,15 +1068,15 @@ public class MainTest extends NbTestCase {
     private static final String DONT_APPEND_PATH = new String("DONT_APPEND_PATH");
     private static final String IGNORE = new String("IGNORE");
 
-    private void doRunCompiler(String golden, String stdOut, String stdErr, String... fileContentAndExtraOptions) throws Exception {
+    protected void doRunCompiler(String golden, String stdOut, String stdErr, String... fileContentAndExtraOptions) throws Exception {
         doRunCompiler(equivalentValidator(golden), equivalentValidator(stdOut), equivalentValidator(stdErr), fileContentAndExtraOptions);
     }
 
-    private void doRunCompiler(Validator fileContentValidator, Validator stdOutValidator, Validator stdErrValidator, String... fileContentAndExtraOptions) throws Exception {
+    protected void doRunCompiler(Validator fileContentValidator, Validator stdOutValidator, Validator stdErrValidator, String... fileContentAndExtraOptions) throws Exception {
         doRunCompiler(fileContentValidator, stdOutValidator, stdErrValidator, 0, fileContentAndExtraOptions);
     }
 
-    private void doRunCompiler(Validator fileContentValidator, Validator stdOutValidator, Validator stdErrValidator, int exitcode, String... fileContentAndExtraOptions) throws Exception {
+    protected void doRunCompiler(Validator fileContentValidator, Validator stdOutValidator, Validator stdErrValidator, int exitcode, String... fileContentAndExtraOptions) throws Exception {
         List<String> fileAndContent = new LinkedList<String>();
         List<String> extraOptions = new LinkedList<String>();
         List<String> fileContentAndExtraOptionsList = Arrays.asList(fileContentAndExtraOptions);
@@ -1154,9 +1155,9 @@ public class MainTest extends NbTestCase {
         ByteArrayOutputStream errData = new ByteArrayOutputStream();
         System.setErr(new PrintStream(errData, true, "UTF-8"));
 
+        int actualExit = -1;
         try {
-            int actualExit = Main.compile(params);
-            assertEquals(exitcode, actualExit);
+            actualExit = Main.compile(params);
             ParserManager.parseWhenScanFinished("text/x-java", new UserTask() {
                 @Override
                 public void run(ResultIterator resultIterator) throws Exception {}
@@ -1170,6 +1171,8 @@ public class MainTest extends NbTestCase {
             output[1] = new String(errData.toByteArray(), "UTF-8");
             System.setErr(oldErr);
         }
+        //after the streams are restored, so that the message can include stderr:
+        assertEquals("exit code; stderr=" + output[1], exitcode, actualExit);
     }
 
     //verify that the DeclarativeHintsTestBase works:

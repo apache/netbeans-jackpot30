@@ -71,15 +71,63 @@ public class CreateToolTest extends MainTest {
 
             int actualExitCode = p.waitFor();
 
-            assertEquals(exitcode, actualExitCode);
-
             outCopy.doJoin();
             errCopy.doJoin();
+
+            //after the streams are joined, so that the message can include stderr:
+            assertEquals("exit code; stderr=" + output[1], exitcode, actualExitCode);
         } catch (Throwable t) {
             throw new IOException(t);
         }
     }
     
+    public void testHintFileDocumentBasedRewrite() throws Exception {
+        //a rewrite that relocates original code into newly generated code computes its
+        //diff through a scratch Document (CasualDiff), which the standalone tool's class
+        //closure does not provide unless registered (StandaloneDocumentFactory and
+        //BaseDocumentServices); without them the rewrite is silently not applied
+        String golden =
+            "package test;\n" +
+            "public class Test {\n" +
+            "    private void test(int[] array) {\n" +
+            "        for (int v : array) {\n" +
+            "            System.out.println(v);\n" +
+            "        }\n" +
+            "    }\n" +
+            "}\n";
+
+        doRunCompiler(golden,
+                      null,
+                      null,
+                      "src/test/Test.java",
+                      "package test;\n" +
+                      "public class Test {\n" +
+                      "    private void test(int[] array) {\n" +
+                      "        for (int i = 0; i < array.length; i++) {\n" +
+                      "            int v = array[i];\n" +
+                      "            System.out.println(v);\n" +
+                      "        }\n" +
+                      "    }\n" +
+                      "}\n",
+                      "test-rule.hint",
+                      "\"Enhanced for\":\n" +
+                      "for (int $i = 0; $i < $array.length; $i++) {\n" +
+                      "    $T $var = $array[$i];\n" +
+                      "    $stmts$;\n" +
+                      "} :: !referencedIn($i, $stmts$)\n" +
+                      "=>\n" +
+                      "for ($T $var : $array) {\n" +
+                      "    $stmts$;\n" +
+                      "}\n" +
+                      ";;\n",
+                      null,
+                      "--hint-file",
+                      "${workdir}/test-rule.hint",
+                      "--source",
+                      "1.8",
+                      "--apply");
+    }
+
     private static final Set<String> MUST_CONTAIN = new HashSet<String>(Arrays.asList(" 1 failure", "/h.test/neg", "Tests run: 2,  Failures: 1"));
     private static final Set<String> MUST_NOT_CONTAIN = new HashSet<String>(Arrays.asList("/h.test/pos"));
 

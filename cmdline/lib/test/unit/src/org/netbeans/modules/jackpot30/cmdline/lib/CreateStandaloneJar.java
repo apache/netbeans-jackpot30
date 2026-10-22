@@ -30,6 +30,7 @@ import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.URL;
 import java.net.URLStreamHandlerFactory;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -159,6 +160,10 @@ public abstract class CreateStandaloneJar extends NbTestCase {
         Info info = computeInfo();
 
         toProcess.addAll(info.additionalRoots);
+        //document services needed by ModificationResult.commit and CasualDiff
+        //when a Document exists for a file; registered as named services below:
+        toProcess.add(StandaloneTools.BaseDocumentServices.class.getName());
+        toProcess.add("org.netbeans.modules.editor.document.StubImpl$F");
 
         Set<String> done = new HashSet<String>();
         Set<String> bundlesToCopy = new HashSet<String>();
@@ -305,6 +310,33 @@ public abstract class CreateStandaloneJar extends NbTestCase {
 
         for (Entry<String, Collection<MetaInfRegistration>> e : api2Registrations.entrySet()) {
             addMETA_INFRegistration(out, info, e.getValue());
+        }
+
+        //named services (@ServiceProvider(path=...)), not discoverable from the class closure:
+        Set<String> namedServices = new HashSet<String>();
+        namedServices.add("Editors/Documents/org.netbeans.editor.BaseDocument/org.netbeans.modules.editor.document.implspi.DocumentServiceFactory");
+        namedServices.add("Editors/Documents/javax.swing.text.Document/org.netbeans.modules.editor.document.implspi.DocumentServiceFactory");
+
+        for (String namedService : namedServices) {
+            String resourceName = "META-INF/namedservices/" + namedService;
+            Enumeration<URL> resources = this.getClass().getClassLoader().getResources(resourceName);
+
+            StringBuilder content = new StringBuilder();
+
+            while (resources.hasMoreElements()) {
+                //keep only implementations that are part of the standalone jar;
+                //MetaInfServicesLookup rejects the whole file if one class is missing:
+                for (String line : new String(readFile(resources.nextElement()), StandardCharsets.UTF_8).split("\n")) {
+                    String impl = line.trim();
+                    if (impl.isEmpty() || impl.startsWith("#") || out.containsKey(escapeJavaxLang(info, impl.replace('.', '/') + ".class"))) {
+                        content.append(line).append("\n");
+                    }
+                }
+            }
+
+            if (content.length() > 0) {
+                out.put(resourceName, content.toString().getBytes(StandardCharsets.UTF_8));
+            }
         }
 
         URL ctSym = this.getClass().getClassLoader().getResource("META-INF/ct.sym");

@@ -42,12 +42,17 @@ import org.netbeans.api.editor.mimelookup.MimePath;
 import org.netbeans.api.java.classpath.ClassPath;
 import org.netbeans.api.java.queries.SourceForBinaryQuery;
 import org.netbeans.api.java.source.ClasspathInfo;
+import org.netbeans.editor.BaseDocument;
+import org.netbeans.modules.editor.document.implspi.DocumentServiceFactory;
+import org.netbeans.modules.editor.lib.EditorPackageAccessor;
 import org.netbeans.modules.java.hints.spiimpl.Utilities.SPI;
 import org.netbeans.modules.java.hints.spiimpl.options.HintsSettings.GlobalSettingsProvider;
 import org.netbeans.modules.java.source.indexing.JavaCustomIndexer;
 import org.netbeans.modules.java.source.parsing.JavacParser;
 import org.netbeans.modules.java.source.parsing.JavacParserFactory;
+import org.netbeans.modules.java.source.save.Reindenter;
 import org.netbeans.modules.parsing.impl.indexing.implspi.ActiveDocumentProvider;
+import org.netbeans.spi.editor.document.DocumentFactory;
 import org.netbeans.spi.editor.document.EditorMimeTypesImplementation;
 import org.netbeans.spi.editor.mimelookup.MimeDataProvider;
 import org.netbeans.spi.java.classpath.support.ClassPathSupport;
@@ -78,12 +83,58 @@ public class StandaloneTools {
     @ServiceProvider(service=MimeDataProvider.class)
     public static final class StandaloneMimeDataProviderImpl implements MimeDataProvider {
 
-        private static final Lookup L = Lookups.fixed(NbPreferences.forModule(StandaloneTools.class), new JavacParserFactory(), new JavaCustomIndexer.Factory(), new GlobalSettingsProvider());
+        private static final Lookup L = Lookups.fixed(NbPreferences.forModule(StandaloneTools.class), new JavacParserFactory(), new JavaCustomIndexer.Factory(), new GlobalSettingsProvider(), new StandaloneDocumentFactory(), new Reindenter.Factory());
 
         public Lookup getLookup(MimePath mimePath) {
             if ("text/x-java".equals(mimePath.getPath()))
                 return L;
             return null;
+        }
+
+    }
+
+    /**
+     * Rewrites that relocate a multi-line piece of original code into newly
+     * generated code (e.g. the body of a {@code for} loop that becomes an enhanced
+     * {@code for}) re-indent it through a scratch {@code Document}
+     * ({@code CasualDiff}). In the IDE the pieces below come from layer and
+     * named-service registrations that the standalone class closure does not
+     * include: a {@code DocumentFactory} for the MIME type, the
+     * {@code AtomicLockDocument} service for {@code BaseDocument}, and the Java
+     * {@code IndentTask} ({@code Reindenter}) that computes the indentation.
+     */
+    public static final class StandaloneDocumentFactory implements DocumentFactory {
+
+        @Override
+        public Document createDocument(String mimeType) {
+            return new BaseDocument(false, mimeType);
+        }
+
+        @Override
+        public Document getDocument(FileObject file) {
+            return null;
+        }
+
+        @Override
+        public FileObject getFileObject(Document document) {
+            Object sdp = document.getProperty(Document.StreamDescriptionProperty);
+            return sdp instanceof FileObject ? (FileObject) sdp : null;
+        }
+
+    }
+
+    /**
+     * {@code AtomicLockDocument} and friends for every {@code BaseDocument},
+     * whether created by the factory above or opened through an editor cookie.
+     * Mirrors {@code org.netbeans.modules.editor.lib.DocumentServices}, which the
+     * standalone class closure does not include.
+     */
+    @ServiceProvider(service=DocumentServiceFactory.class, path="Editors/Documents/org.netbeans.editor.BaseDocument")
+    public static final class BaseDocumentServices implements DocumentServiceFactory<BaseDocument> {
+
+        @Override
+        public Lookup forDocument(BaseDocument doc) {
+            return Lookups.fixed(EditorPackageAccessor.get().BaseDocument_newServices(doc));
         }
 
     }

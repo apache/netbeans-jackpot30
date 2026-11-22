@@ -569,6 +569,7 @@ public abstract class CreateStandaloneJar extends NbTestCase {
         "org/netbeans/modules/java/j2seproject/ui/resources/compileOnSaveDisabledBadge.gif",
         "org/netbeans/modules/parsing/impl/resources/error-badge.gif",
         "org/netbeans/modules/editor/tools/storage/ToolConfiguration-1_0.dtd",
+        "com/sun/tools/javac/resources/ct.properties",
         "com/sun/tools/javac/resources/compiler.properties",
         "com/sun/tools/javac/resources/javac.properties"
     ));

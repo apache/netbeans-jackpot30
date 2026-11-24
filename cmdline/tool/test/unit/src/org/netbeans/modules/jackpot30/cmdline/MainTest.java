@@ -322,6 +322,42 @@ public class MainTest extends NbTestCase {
                       "--apply");
     }
 
+    public void testCustomCondition() throws Exception {
+        String golden =
+            "package test;\n" +
+            "public class Test {\n" +
+            "    private void test(java.util.Collection c) {\n" +
+            "        boolean b = c.size() == 0;\n" +
+            "    }\n" +
+            "}\n";
+
+        doRunCompiler(golden,
+                      "",
+                      null,
+                      "src/test/Test.java",
+                      "package test;\n" +
+                      "public class Test {\n" +
+                      "    private void test(java.util.Collection c) {\n" +
+                      "        boolean b = c.isEmpty();\n" +
+                      "    }\n" +
+                      "}\n",
+                      "test-rule.hint",
+                      """
+                      $var.isEmpty() :: customCondition() => $var.size() == 0;;
+                      <?
+                          public boolean customCondition() {
+                              return true;
+                          }
+                      ?>
+                      """,
+                      null,
+                      "--hint-file",
+                      "${workdir}/test-rule.hint",
+                      "--source",
+                      "1.6",
+                      "--apply");
+    }
+
     public void testConfigurationFileDeclarative1() throws Exception {
         String golden =
             "package test;\n" +

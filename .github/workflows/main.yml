@@ -50,7 +50,7 @@ jobs:
 
       - name: Set up NetBeans
         run: |
-            wget -q 'https://dlcdn.apache.org/netbeans/netbeans/31/netbeans-31-bin.zip' -O /tmp/netbeans-31-bin.zip
+            wget -q 'https://archive.apache.org/dist/netbeans/netbeans/31/netbeans-31-bin.zip?action=download' -O /tmp/netbeans-31-bin.zip
             (cd $HOME; unzip /tmp/netbeans-31-bin.zip)
 
       - name: Run RAT

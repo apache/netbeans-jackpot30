@@ -1,0 +1,5 @@
+${basedir}/src/main/java/test/App.java:23: warning: [test] test
+        System.err.println(args[0].length() == 0);
+                           ^
+
+result: 0
